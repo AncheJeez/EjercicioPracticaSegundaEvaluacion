@@ -10,22 +10,32 @@ package Modelo;
  */
 public class Profesor {
     
+    private int id_profesor;
     private String nombre;
-    private String apellido;
+    private String apellidos;
     private String email;
     private String password;
-    private String tipo;
+    private boolean directiva;
     
     public Profesor(){
         
     }
 
-    public Profesor(String nombre, String apellido, String email, String password, String tipo) {
+    public Profesor(int id_profesor, String nombre, String apellidos, String email, String password, boolean directiva) {
+        this.id_profesor = id_profesor;
         this.nombre = nombre;
-        this.apellido = apellido;
+        this.apellidos = apellidos;
         this.email = email;
         this.password = password;
-        this.tipo = tipo;
+        this.directiva = directiva;
+    }
+    
+    public int getIdProfesor() {
+        return id_profesor;
+    }
+
+    public void setIdProfesor(int id_profesor) {
+        this.id_profesor = id_profesor;
     }
 
     public String getNombre() {
@@ -36,12 +46,12 @@ public class Profesor {
         this.nombre = nombre;
     }
 
-    public String getApellido() {
-        return apellido;
+    public String getApellidos() {
+        return apellidos;
     }
 
-    public void setApellido(String apellido) {
-        this.apellido = apellido;
+    public void setApellidos(String apellidos) {
+        this.apellidos = apellidos;
     }
 
     public String getEmail() {
@@ -60,12 +70,12 @@ public class Profesor {
         this.password = password;
     }
 
-    public String getTipo() {
-        return tipo;
+    public boolean getDirectiva() {
+        return directiva;
     }
 
-    public void setTipo(String tipo) {
-        this.tipo = tipo;
+    public void setDirectiva(boolean directiva) {
+        this.directiva = directiva;
     }
     
     

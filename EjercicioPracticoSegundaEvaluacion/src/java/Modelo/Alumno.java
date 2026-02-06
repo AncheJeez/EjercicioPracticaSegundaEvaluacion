@@ -12,6 +12,7 @@ import java.util.Date;
  */
 public class Alumno {
     
+    private int id_alumno;
     private String nombre;
     private String apellidos;
     private String email;
@@ -22,12 +23,21 @@ public class Alumno {
         
     }
 
-    public Alumno(String nombre, String apellidos, String email, String curso_matriculado, Date fecha_nac) {
+    public Alumno(int id_alumno, String nombre, String apellidos, String email, String curso_matriculado, Date fecha_nac) {
+        this.id_alumno = id_alumno;
         this.nombre = nombre;
         this.apellidos = apellidos;
         this.email = email;
         this.curso_matriculado = curso_matriculado;
         this.fecha_nac = fecha_nac;
+    }
+    
+    public int getIdAlumno() {
+        return id_alumno;
+    }
+
+    public void setIdAlumno(int id_alumno) {
+        this.id_alumno = id_alumno;
     }
 
     public String getNombre() {

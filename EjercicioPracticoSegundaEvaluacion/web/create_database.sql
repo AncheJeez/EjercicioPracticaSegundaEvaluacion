@@ -2,11 +2,11 @@ SHOW DATABASES;
 CREATE DATABASE EjercicioSegundaEvaluacion;
 USE EjercicioSegundaEvaluacion;
 
-DROP TABLE Alumno;
-DROP TABLE Curso;
-DROP TABLE Empresa;
-DROP TABLE Practica;
-DROP TABLE Profesor;
+DROP TABLE Alumno CASCADE;
+DROP TABLE Curso CASCADE;
+DROP TABLE Empresa CASCADE;
+DROP TABLE Practica CASCADE;
+DROP TABLE Profesor CASCADE;
 
 CREATE TABLE Alumno(
     id_alumno int NOT NULL,
