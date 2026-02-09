@@ -22,6 +22,8 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
+import Conectividad.ConectarseBD;
+
 /**
  *
  * @author usuario
@@ -79,19 +81,17 @@ public class ServletMostrarTodosLosDatos extends HttpServlet {
         
             response.setContentType("text/html;charset=UTF-8");
         
-//        try (PrintWriter out = response.getWriter()) {
+        Connection con = null;
+        Statement stmt = null;
+        ResultSet rsAlumnos = null;
+        ResultSet rsProf = null;
         try{
             
-            String url = "jdbc:mysql://localhost:3306/ejerciciosegundaevaluacion";
-            String user = "root";
-            String password = "admin";
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            Connection con = DriverManager.getConnection(url, user, password);
+            con = ConectarseBD.conectarse(con);
             
-            Statement stmt = con.createStatement();
+            stmt = con.createStatement();
             
-//            ResultSet rs = stmt.executeQuery("SELECT nombre, apellidos FROM Alumno");
-            ResultSet rsAlumnos = stmt.executeQuery(
+            rsAlumnos = stmt.executeQuery(
                 "SELECT id_alumno, nombre, apellidos, email, curso_matriculado, fecha_nac FROM Alumno"
             );
 
@@ -109,7 +109,7 @@ public class ServletMostrarTodosLosDatos extends HttpServlet {
             
             request.setAttribute("alumnos", alumnos);
             
-            ResultSet rsProf = stmt.executeQuery(
+            rsProf = stmt.executeQuery(
                 "SELECT id_profesor, nombre, apellidos, email, password, directiva FROM Profesor"
             );
 
@@ -132,22 +132,16 @@ public class ServletMostrarTodosLosDatos extends HttpServlet {
             request.getRequestDispatcher("/mostrarTodosDatos.jsp").forward(request, response);
             
             
-//            out.println("<html><body>");
-//            out.println("<h1>Alumnos</h1>");
-//            out.println("<ul>");
-//            while (rs.next()) {
-//                out.println("<li>" + rs.getString("nombre") + " " + rs.getString("apellidos") + "</li>");
-//            }
-//            out.println("</ul>");
-//            out.println("</body></html>");
-            
         } catch (ClassNotFoundException ex) {
             System.getLogger(ServletMostrarTodosLosDatos.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
         } catch (SQLException ex) {
             System.getLogger(ServletMostrarTodosLosDatos.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+        } finally {
+            try { if(rsAlumnos != null) rsAlumnos.close(); } catch(Exception e) {}
+            try { if(rsProf != null) rsProf.close(); } catch(Exception e) {}
+            try { if(stmt != null) stmt.close(); } catch(Exception e) {}
+            try { if(con != null) con.close(); } catch(Exception e) {}
         }
-        
-//            processRequest(request, response);
     }
 
     /**

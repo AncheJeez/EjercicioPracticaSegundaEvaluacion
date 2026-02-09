@@ -31,6 +31,9 @@
                         <a class="nav-link" href="/EjercicioPracticoSegundaEvaluacion/Logearse">Logearse</a>
                     </li>
                     <li class="nav-item active">
+                        <a class="nav-link" href="/EjercicioPracticoSegundaEvaluacion/Registrarse">Registrarse</a>
+                    </li>
+                    <li class="nav-item active">
                         <a class="nav-link" href="/EjercicioPracticoSegundaEvaluacion/ServletMostrarTodosLosDatos">Mostrar Datos</a>
                     </li>
                 </ul>
@@ -39,7 +42,7 @@
         <h1>Inicie sesión</h1>
         
         <form action="Logearse" method="post">
-            <c:if test="${not empty error}">
+            <c:if test="${error != null and error != ''}">
                 <div class="alert alert-danger" role="alert">
                     ${error}
                 </div>

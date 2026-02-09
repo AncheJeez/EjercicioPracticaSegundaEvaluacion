@@ -31,6 +31,9 @@
                         <a class="nav-link" href="/EjercicioPracticoSegundaEvaluacion/Logearse">Logearse</a>
                     </li>
                     <li class="nav-item active">
+                        <a class="nav-link" href="/EjercicioPracticoSegundaEvaluacion/Registrarse">Registrarse</a>
+                    </li>
+                    <li class="nav-item active">
                         <a class="nav-link" href="/EjercicioPracticoSegundaEvaluacion/ServletMostrarTodosLosDatos">Mostrar Datos</a>
                     </li>
                 </ul>

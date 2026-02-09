@@ -12,6 +12,12 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import Conectividad.ConectarseBD;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 /**
  *
  * @author usuario
@@ -58,6 +64,7 @@ public class Registrarse extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 //        processRequest(request, response);
+        request.removeAttribute("error");
         request.getRequestDispatcher("/Register.jsp").forward(request, response);
     }
 
@@ -72,7 +79,44 @@ public class Registrarse extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-//        processRequest(request, response);
+        
+        Connection con = null;
+        PreparedStatement ps = null;
+        ResultSet rsSelect = null;
+        
+        String nombre = request.getParameter("nombre");
+        String apellidos = request.getParameter("apellidos");
+        boolean directiva = request.getParameter("directiva") != null;
+        String email = request.getParameter("email");
+        String password = request.getParameter("password");
+        
+//        System.out.println(nombre+" "+apellidos+" "+directiva+" "+email+" "+password);
+        try{
+            con = ConectarseBD.conectarse(con);
+            
+            String sqlSelect = "SELECT email FROM Profesor WHERE email = ?";
+            ps = con.prepareStatement(sqlSelect);
+            ps.setString(1,email);
+            rsSelect = ps.executeQuery();
+            
+            if(rsSelect.next()){
+                System.out.println("Correo existe en la base de datos");
+                request.setAttribute("error", "Correo existe en la base de datos");
+                request.getRequestDispatcher("Register.jsp").forward(request, response);
+            }else{
+                ps = con.prepareStatement("INSERT INTO Profesor ()");
+            }
+            
+            
+        } catch (ClassNotFoundException ex) {
+            System.getLogger(ServletMostrarTodosLosDatos.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+        } catch (SQLException ex) {
+            System.getLogger(ServletMostrarTodosLosDatos.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+        } finally {
+            try { if(ps != null) ps.close(); } catch(Exception e) {}
+            try { if(con != null) con.close(); } catch(Exception e) {}
+        }
+        
     }
 
     /**

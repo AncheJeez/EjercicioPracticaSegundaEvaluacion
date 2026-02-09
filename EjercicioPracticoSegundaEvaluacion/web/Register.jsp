@@ -29,6 +29,9 @@
                         <a class="nav-link" href="/EjercicioPracticoSegundaEvaluacion/Logearse">Logearse</a>
                     </li>
                     <li class="nav-item active">
+                        <a class="nav-link" href="/EjercicioPracticoSegundaEvaluacion/Registrarse">Registrarse</a>
+                    </li>
+                    <li class="nav-item active">
                         <a class="nav-link" href="/EjercicioPracticoSegundaEvaluacion/ServletMostrarTodosLosDatos">Mostrar Datos</a>
                     </li>
                 </ul>
@@ -37,7 +40,7 @@
         <h1>Registrese</h1>
         
         <form action="Registrarse" method="post">
-            <c:if test="${not empty error}">
+            <c:if test="${error != null and error != ''}">
                 <div class="alert alert-danger" role="alert">
                     ${error}
                 </div>
@@ -57,7 +60,7 @@
             <div class="row mb-3">
                 <div class="col-sm-10 offset-sm-2">
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="directiva">
+                        <input class="form-check-input" type="checkbox" id="directiva" name="directiva">
                         <label class="form-check-label" for="remember">Directiva</label>
                     </div>
                 </div>

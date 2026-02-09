@@ -20,6 +20,8 @@ import java.sql.Statement;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 
+import Conectividad.ConectarseBD;
+
 /**
  *
  * @author usuario
@@ -66,7 +68,7 @@ public class Logearse extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 //        processRequest(request, response);
-
+        request.removeAttribute("error");
         request.getRequestDispatcher("/LogIn.jsp").forward(request, response);
     }
 
@@ -81,18 +83,15 @@ public class Logearse extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-//        processRequest(request, response);
+        
         String email = request.getParameter("email");
         String passwordUser = request.getParameter("password");
         Connection con = null;
         PreparedStatement ps = null;
         ResultSet rsUsuario = null;
         try{
-            String url = "jdbc:mysql://localhost:3306/ejerciciosegundaevaluacion";
-            String user = "root";
-            String password = "admin";
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            con = DriverManager.getConnection(url, user, password);
+
+            con = ConectarseBD.conectarse(con);
             
             String sql = "SELECT nombre, apellidos, email, password FROM Profesor WHERE email = ? AND password = ?";
             ps = con.prepareStatement(sql);
