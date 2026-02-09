@@ -13,7 +13,28 @@
         <title>JSP Page</title>
     </head>
     <body>
-        Alumnos
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="#">
+                <img src="./assets/Apache_Tomcat_logo.svg.png" width="40" height="40" class="d-inline-block align-top" alt="">
+                Practica Segunda Evaluacion
+                <img src="./assets/Java_programming_language_logo.svg.png" width="40" height="40" class="d-inline-block align-top" alt="">
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="/EjercicioPracticoSegundaEvaluacion/Logearse">Logearse</a>
+                    </li>
+                    <li class="nav-item active">
+                        <a class="nav-link" href="/EjercicioPracticoSegundaEvaluacion/ServletMostrarTodosLosDatos">Mostrar Datos</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <h1>Alumnos</h1>
         <ul>
             <c:forEach var="alumno" items="${alumnos}">
                 <li>${alumno.idAlumno} - ${alumno.nombre} ${alumno.apellidos} ${alumno.email} ${alumno.curso_matriculado} ${alumno.fecha_nac}</li>

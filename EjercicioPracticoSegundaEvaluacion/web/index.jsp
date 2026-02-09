@@ -1,8 +1,12 @@
+<%-- 
+    Document   : index.jsp
+    Created on : 9 feb 2026, 9:55:27
+    Author     : usuario
+--%>
+
+<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <!DOCTYPE html>
-<!--
-Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
-Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit this template
--->
 <html>
     <head>
         <title>Página principal</title>
@@ -33,6 +37,10 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
             </div>
         </nav>
         
-<!--        <a href="/EjercicioPracticoSegundaEvaluacion/ServletMostrarTodosLosDatos">Mostrar todos los datos</a>-->
+        <%
+        String nombre = (String)session.getAttribute("nombre");
+        String apellidos = (String)session.getAttribute("apellidos");
+        %>
+        Welcome <%= nombre %> <%= apellidos %>
     </body>
 </html>
