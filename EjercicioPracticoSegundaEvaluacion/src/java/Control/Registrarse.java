@@ -17,6 +17,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import javax.servlet.http.HttpSession;
 
 /**
  *
@@ -81,8 +82,9 @@ public class Registrarse extends HttpServlet {
             throws ServletException, IOException {
         
         Connection con = null;
-        PreparedStatement ps = null;
+        PreparedStatement psSelect = null;
         ResultSet rsSelect = null;
+        PreparedStatement psInsert = null;
         
         String nombre = request.getParameter("nombre");
         String apellidos = request.getParameter("apellidos");
@@ -95,16 +97,29 @@ public class Registrarse extends HttpServlet {
             con = ConectarseBD.conectarse(con);
             
             String sqlSelect = "SELECT email FROM Profesor WHERE email = ?";
-            ps = con.prepareStatement(sqlSelect);
-            ps.setString(1,email);
-            rsSelect = ps.executeQuery();
+            psSelect = con.prepareStatement(sqlSelect);
+            psSelect.setString(1,email);
+            rsSelect = psSelect.executeQuery();
             
             if(rsSelect.next()){
                 System.out.println("Correo existe en la base de datos");
                 request.setAttribute("error", "Correo existe en la base de datos");
                 request.getRequestDispatcher("Register.jsp").forward(request, response);
             }else{
-                ps = con.prepareStatement("INSERT INTO Profesor ()");
+                String sqlInsert = "INSERT INTO PROFESOR (nombre, apellidos, email, password, directiva)"
+                        + "VALUES (?,?,?,?,?)";
+                psInsert = con.prepareStatement(sqlInsert);
+                psInsert.setString(1,nombre);
+                psInsert.setString(2,apellidos);
+                psInsert.setString(3,email);
+                psInsert.setString(4,password);
+                psInsert.setBoolean(5,directiva);
+                psInsert.executeUpdate();
+                
+                HttpSession httpSession = request.getSession();
+                httpSession.setAttribute("nombre",nombre);
+                httpSession.setAttribute("apellidos",apellidos);
+                request.getRequestDispatcher("index.jsp").forward(request, response);
             }
             
             
@@ -113,7 +128,9 @@ public class Registrarse extends HttpServlet {
         } catch (SQLException ex) {
             System.getLogger(ServletMostrarTodosLosDatos.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
         } finally {
-            try { if(ps != null) ps.close(); } catch(Exception e) {}
+            try { if(psSelect != null) psSelect.close(); } catch(Exception e) {}
+            try { if(rsSelect != null) rsSelect.close(); } catch(Exception e) {}
+            try { if(psInsert != null) psInsert.close(); } catch(Exception e) {}
             try { if(con != null) con.close(); } catch(Exception e) {}
         }
         

@@ -40,10 +40,8 @@
             </div>
         </nav>
         
-        <%
-        String nombre = (String)session.getAttribute("nombre");
-        String apellidos = (String)session.getAttribute("apellidos");
-        %>
-        Welcome <%= nombre %> <%= apellidos %>
+        <c:if test="${sessionScope.nombre != null && sessionScope.nombre != ''}">
+            Welcome ${sessionScope.nombre} ${sessionScope.apellidos}
+        </c:if>
     </body>
 </html>
