@@ -93,7 +93,7 @@ public class Logearse extends HttpServlet {
 
             con = ConectarseBD.conectarse(con);
             
-            String sql = "SELECT nombre, apellidos, email, password FROM Profesor WHERE email = ? AND password = ?";
+            String sql = "SELECT nombre, apellidos, email, password, directiva FROM Profesor WHERE email = ? AND password = ?";
             ps = con.prepareStatement(sql);
             ps.setString(1, email);
             ps.setString(2, passwordUser);
@@ -102,9 +102,11 @@ public class Logearse extends HttpServlet {
             if(rsUsuario.next()){
                 String nombre = rsUsuario.getString("nombre");
                 String apellidos = rsUsuario.getString("apellidos");
+                boolean directiva = rsUsuario.getBoolean("directiva");
                 HttpSession httpSession = request.getSession();
                 httpSession.setAttribute("nombre",nombre);
                 httpSession.setAttribute("apellidos",apellidos);
+                httpSession.setAttribute("directiva", directiva);
                 
                 request.getRequestDispatcher("index.jsp").forward(request, response);
             }else{
