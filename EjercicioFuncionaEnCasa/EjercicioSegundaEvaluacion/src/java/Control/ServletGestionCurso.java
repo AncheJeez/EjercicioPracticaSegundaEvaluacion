@@ -162,22 +162,11 @@ public class ServletGestionCurso extends HttpServlet {
             return;
         }
 
-        try (Connection con = ConectarseBD.conectarse(null)) {
+        try {
             if (nombreAntiguo == null || nombreAntiguo.isEmpty()) {
-                // Crear
-                String sqlInsert = "INSERT INTO Curso(nombre) VALUES(?)";
-                try (PreparedStatement ps = con.prepareStatement(sqlInsert)) {
-                    ps.setString(1, nombreNuevo);
-                    ps.executeUpdate();
-                }
+                Modelo.CursoDAO.insert(nombreNuevo);
             } else {
-                // Editar
-                String sqlUpdate = "UPDATE Curso SET nombre = ? WHERE nombre = ?";
-                try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
-                    ps.setString(1, nombreNuevo);
-                    ps.setString(2, nombreAntiguo);
-                    ps.executeUpdate();
-                }
+                Modelo.CursoDAO.update(nombreNuevo, nombreAntiguo);
             }
         } catch (Exception e) {
             e.printStackTrace();

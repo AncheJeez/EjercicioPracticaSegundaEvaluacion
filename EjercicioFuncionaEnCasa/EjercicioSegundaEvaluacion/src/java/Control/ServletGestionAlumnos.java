@@ -20,11 +20,15 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
-import Conectividad.ConectarseBD;
 import Modelo.Alumno;
-import java.sql.PreparedStatement;
+import Modelo.AlumnoDAO;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import Conectividad.ConectarseBD;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 /**
  *
@@ -76,19 +80,11 @@ public class ServletGestionAlumnos extends HttpServlet {
     
     private void borrarAlumno(HttpServletRequest request, HttpServletResponse response, String id)
             throws ServletException, IOException {
-        try (Connection con = ConectarseBD.conectarse(null)) {
-            String sqlDelete = "DELETE FROM Alumno WHERE id_alumno = ?";
-            try (PreparedStatement ps = con.prepareStatement(sqlDelete)) {
-                ps.setInt(1, Integer.parseInt(id));
-                ps.executeUpdate();
-                System.out.println("Alumno con ID " + id + " borrado correctamente.");
-            }
-        } catch (SQLException e) {
+        try {
+            Modelo.AlumnoDAO.delete(Integer.parseInt(id));
+        } catch (Exception e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ServletGestionAlumnos.class.getName()).log(Level.SEVERE, null, ex);
         }
-
         response.sendRedirect("ServletGestionAlumnos");
     }
     

@@ -11,13 +11,10 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import Conectividad.ConectarseBD;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import javax.servlet.http.HttpSession;
+
+import Modelo.Profesor;
+import Modelo.ProfesorDAO;
 
 /**
  *
@@ -26,121 +23,47 @@ import javax.servlet.http.HttpSession;
 @WebServlet(name = "Registrarse", urlPatterns = {"/Registrarse","/registrarse"})
 public class Registrarse extends HttpServlet {
 
-    /**
-     * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
-     * methods.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
-        try (PrintWriter out = response.getWriter()) {
-            /* TODO output your page here. You may use following sample code. */
-            out.println("<!DOCTYPE html>");
-            out.println("<html>");
-            out.println("<head>");
-            out.println("<title>Servlet Registrarse</title>");
-            out.println("</head>");
-            out.println("<body>");
-            out.println("<h1>Servlet Registrarse at " + request.getContextPath() + "</h1>");
-            out.println("</body>");
-            out.println("</html>");
-        }
-    }
-
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-//        processRequest(request, response);
         request.removeAttribute("error");
         request.getRequestDispatcher("/Register.jsp").forward(request, response);
     }
 
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
-        Connection con = null;
-        PreparedStatement psSelect = null;
-        ResultSet rsSelect = null;
-        PreparedStatement psInsert = null;
         
         String nombre = request.getParameter("nombre");
         String apellidos = request.getParameter("apellidos");
         boolean directiva = request.getParameter("directiva") != null;
         String email = request.getParameter("email");
         String password = request.getParameter("password");
-        
-//        System.out.println(nombre+" "+apellidos+" "+directiva+" "+email+" "+password);
-        try{
-            con = ConectarseBD.conectarse(con);
-            
-            String sqlSelect = "SELECT email FROM Profesor WHERE email = ?";
-            psSelect = con.prepareStatement(sqlSelect);
-            psSelect.setString(1,email);
-            rsSelect = psSelect.executeQuery();
-            
-            if(rsSelect.next()){
-                System.out.println("Correo existe en la base de datos");
+        try {
+            if (Modelo.ProfesorDAO.existsByEmail(email)) {
                 request.setAttribute("error", "Correo existe en la base de datos");
                 request.getRequestDispatcher("Register.jsp").forward(request, response);
-            }else{
-                String sqlInsert = "INSERT INTO PROFESOR (nombre, apellidos, email, password, directiva)"
-                        + "VALUES (?,?,?,?,?)";
-                psInsert = con.prepareStatement(sqlInsert);
-                psInsert.setString(1,nombre);
-                psInsert.setString(2,apellidos);
-                psInsert.setString(3,email);
-                psInsert.setString(4,password);
-                psInsert.setBoolean(5,directiva);
-                psInsert.executeUpdate();
-                
-                HttpSession httpSession = request.getSession();
-                httpSession.setAttribute("nombre",nombre);
-                httpSession.setAttribute("apellidos",apellidos);
-                request.getRequestDispatcher("index.jsp").forward(request, response);
+                return;
             }
-            
-            
-        } catch (ClassNotFoundException ex) {
-            System.getLogger(ServletMostrarTodosLosDatos.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
-        } catch (SQLException ex) {
-            System.getLogger(ServletMostrarTodosLosDatos.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
-        } finally {
-            try { if(psSelect != null) psSelect.close(); } catch(Exception e) {}
-            try { if(rsSelect != null) rsSelect.close(); } catch(Exception e) {}
-            try { if(psInsert != null) psInsert.close(); } catch(Exception e) {}
-            try { if(con != null) con.close(); } catch(Exception e) {}
+            Profesor p = new Profesor();
+            p.setNombre(nombre);
+            p.setApellidos(apellidos);
+            p.setEmail(email);
+            p.setPassword(password);
+            p.setDirectiva(directiva);
+            Modelo.ProfesorDAO.insert(p);
+            HttpSession httpSession = request.getSession();
+            httpSession.setAttribute("nombre",nombre);
+            httpSession.setAttribute("apellidos",apellidos);
+            request.getRequestDispatcher("index.jsp").forward(request, response);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            request.setAttribute("error", "Error interno: " + ex.getMessage());
+            request.getRequestDispatcher("Register.jsp").forward(request, response);
         }
         
     }
 
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
-     */
     @Override
     public String getServletInfo() {
         return "Short description";

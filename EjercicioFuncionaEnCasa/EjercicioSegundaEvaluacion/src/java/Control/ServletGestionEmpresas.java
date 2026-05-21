@@ -4,8 +4,8 @@
  */
 package Control;
 
-import Conectividad.ConectarseBD;
 import Modelo.Empresa;
+import Modelo.EmpresaDAO;
 import java.io.IOException;
 import java.io.PrintWriter;
 import javax.servlet.ServletException;
@@ -24,6 +24,11 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.sql.PreparedStatement;
+
+import Conectividad.ConectarseBD;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 /**
  *
  * @author AndJe

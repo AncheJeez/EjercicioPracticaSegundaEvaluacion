@@ -21,13 +21,22 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
-import Conectividad.ConectarseBD;
+import Modelo.PracticaDAO;
+import Modelo.Alumno;
+import Modelo.Empresa;
+import Modelo.Practica;
+import Modelo.Email;
 import Modelo.Alumno;
 import Modelo.Email;
 import Modelo.Empresa;
 import Modelo.Practica;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import Conectividad.ConectarseBD;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 @WebServlet(name = "ServletGestionPracticas", urlPatterns = {"/ServletGestionPracticas"})
 public class ServletGestionPracticas extends HttpServlet {

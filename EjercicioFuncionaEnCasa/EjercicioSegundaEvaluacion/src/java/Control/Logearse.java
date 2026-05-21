@@ -20,7 +20,8 @@ import java.sql.Statement;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 
-import Conectividad.ConectarseBD;
+import Modelo.Profesor;
+import Modelo.ProfesorDAO;
 
 /**
  *
@@ -86,43 +87,23 @@ public class Logearse extends HttpServlet {
         
         String email = request.getParameter("email");
         String passwordUser = request.getParameter("password");
-        Connection con = null;
-        PreparedStatement ps = null;
-        ResultSet rsUsuario = null;
-        try{
-
-            con = ConectarseBD.conectarse(con);
-            
-            String sql = "SELECT nombre, apellidos, email, password, directiva FROM Profesor WHERE email = ? AND password = ?";
-            ps = con.prepareStatement(sql);
-            ps.setString(1, email);
-            ps.setString(2, passwordUser);
-            rsUsuario = ps.executeQuery();
-            
-            if(rsUsuario.next()){
-                String nombre = rsUsuario.getString("nombre");
-                String apellidos = rsUsuario.getString("apellidos");
-                boolean directiva = rsUsuario.getBoolean("directiva");
+        try {
+            Profesor prof = ProfesorDAO.authenticate(email, passwordUser);
+            if (prof != null) {
                 HttpSession httpSession = request.getSession();
-                httpSession.setAttribute("nombre",nombre);
-                httpSession.setAttribute("apellidos",apellidos);
-                httpSession.setAttribute("directiva", directiva);
-                
+                httpSession.setAttribute("nombre", prof.getNombre());
+                httpSession.setAttribute("apellidos", prof.getApellidos());
+                httpSession.setAttribute("directiva", prof.getDirectiva());
+
                 request.getRequestDispatcher("index.jsp").forward(request, response);
-            }else{
-                System.out.println("Usuario no encontrado en la base de datos");
+            } else {
                 request.setAttribute("error", "Usuario o contraseña incorrectos");
                 request.getRequestDispatcher("LogIn.jsp").forward(request, response);
             }
-            
-        } catch (ClassNotFoundException ex) {
-            System.getLogger(ServletMostrarTodosLosDatos.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
-        } catch (SQLException ex) {
-            System.getLogger(ServletMostrarTodosLosDatos.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
-        } finally {
-            try { if(rsUsuario != null) rsUsuario.close(); } catch(Exception e) {}
-            try { if(ps != null) ps.close(); } catch(Exception e) {}
-            try { if(con != null) con.close(); } catch(Exception e) {}
+        } catch (Exception ex) {
+            System.getLogger(Logearse.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+            request.setAttribute("error", "Error interno.");
+            request.getRequestDispatcher("LogIn.jsp").forward(request, response);
         }
         
     }
