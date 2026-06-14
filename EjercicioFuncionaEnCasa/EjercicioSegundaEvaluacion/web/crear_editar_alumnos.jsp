@@ -102,6 +102,20 @@
 
     <h2>${alumno != null ? 'Editar' : 'Crear'} Alumno</h2>
 
+    <c:if test="${not empty error}">
+        <div class="alert alert-danger" role="alert">
+            <strong>Error:</strong> ${error}
+        </div>
+        <c:if test="${not empty exceptionStack}">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Detalles de la excepción</h5>
+                    <pre style="white-space: pre-wrap; font-size: 0.9rem;">${exceptionStack}</pre>
+                </div>
+            </div>
+        </c:if>
+    </c:if>
+
     <form action="ServletGestionAlumnos" method="post">
 
         <c:if test="${not empty alumno}">
@@ -156,6 +170,15 @@
                    name="fecha_nac"
                    value="${not empty alumno ? fechaFormateada : ''}"
                    required>
+        </div>
+
+        <div class="mb-3">
+            <label for="grupo" class="form-label">Grupo</label>
+            <select id="grupo" name="grupo" class="form-select" required>
+                <option value="A" <c:if test="${alumno != null && alumno.grupo == 'A'}">selected="selected"</c:if>>A</option>
+                <option value="B" <c:if test="${alumno != null && alumno.grupo == 'B'}">selected="selected"</c:if>>B</option>
+                <option value="C" <c:if test="${alumno != null && alumno.grupo == 'C'}">selected="selected"</c:if>>C</option>
+            </select>
         </div>
 
         <button type="submit" class="btn btn-primary">Guardar</button>

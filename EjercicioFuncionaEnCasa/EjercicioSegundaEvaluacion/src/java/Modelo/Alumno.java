@@ -10,17 +10,25 @@ public class Alumno {
     private String email;
     private String cursoMatriculado;
     private Date fechaNac;
+    private String grupo; // A, B o C
+
 
     public Alumno() {}
 
     public Alumno(int idAlumno, String nombre, String apellidos,
-                  String email, String cursoMatriculado, Date fechaNac) {
+                  String email, String cursoMatriculado, Date fechaNac, String grupo) {
         this.idAlumno = idAlumno;
         this.nombre = nombre;
         this.apellidos = apellidos;
         this.email = email;
         this.cursoMatriculado = cursoMatriculado;
         this.fechaNac = fechaNac;
+        this.grupo = grupo;
+    }
+
+    // Convenience constructor without id
+    public Alumno(String nombre, String apellidos, String email, String cursoMatriculado, Date fechaNac, String grupo) {
+        this(0, nombre, apellidos, email, cursoMatriculado, fechaNac, grupo);
     }
 
     public int getIdAlumno() {
@@ -69,5 +77,13 @@ public class Alumno {
 
     public void setFechaNac(Date fechaNac) {
         this.fechaNac = fechaNac;
+    }
+
+    public String getGrupo() {
+        return grupo;
+    }
+
+    public void setGrupo(String grupo) {
+        this.grupo = grupo;
     }
 }

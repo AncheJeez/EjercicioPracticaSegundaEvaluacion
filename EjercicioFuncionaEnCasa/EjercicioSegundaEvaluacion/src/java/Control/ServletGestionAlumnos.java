@@ -82,74 +82,51 @@ public class ServletGestionAlumnos extends HttpServlet {
             throws ServletException, IOException {
         try {
             Modelo.AlumnoDAO.delete(Integer.parseInt(id));
+            response.sendRedirect("ServletGestionAlumnos");
+            return;
         } catch (Exception e) {
-            e.printStackTrace();
+            // capture stacktrace and show the view with error details
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            request.setAttribute("error", "Error al borrar alumno: " + e.getMessage());
+            request.setAttribute("exceptionStack", sw.toString());
+            // fallthrough to listar para mostrar la vista con el error
         }
-        response.sendRedirect("ServletGestionAlumnos");
+        listarAlumnos(request, response);
     }
     
     private void listarAlumnos(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-       List<Alumno> alumnos = new ArrayList<>();
-        
-        // Obtener datos de la base de datos
-        try (Connection con = ConectarseBD.conectarse(null);
-             Statement stmt = con.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id_alumno, nombre, apellidos, email, curso_matriculado, fecha_nac FROM Alumno")) {
-
-            while (rs.next()) {
-                Alumno alumno = new Alumno(
-                        rs.getInt("id_alumno"),
-                        rs.getString("nombre"),
-                        rs.getString("apellidos"),
-                        rs.getString("email"),
-                        rs.getString("curso_matriculado"),
-                        rs.getDate("fecha_nac")
-                );
-                alumnos.add(alumno);
-            }
+        try {
+            List<Alumno> alumnos = Modelo.AlumnoDAO.listAll();
             request.setAttribute("alumnos", alumnos);
             request.getRequestDispatcher("/gestion_alumnos.jsp").forward(request, response);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ServletGestionEmpresas.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception e) {
+            // capture stacktrace and show the gestion view with details
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            request.setAttribute("error", "Error al listar alumnos: " + e.getMessage());
+            request.setAttribute("exceptionStack", sw.toString());
+            request.getRequestDispatcher("/gestion_alumnos.jsp").forward(request, response);
         }
     }
     
     private void editarAlumno(HttpServletRequest request, HttpServletResponse response, String id)
             throws ServletException, IOException {
-
-        try (Connection con = ConectarseBD.conectarse(null)) {
-
-            String sql = "SELECT id_alumno, nombre, apellidos, email, curso_matriculado, fecha_nac FROM Alumno WHERE id_alumno = ?";
-            PreparedStatement ps = con.prepareStatement(sql);
-            ps.setInt(1, Integer.parseInt(id));
-
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-
-                Alumno alumno = new Alumno(
-                        rs.getInt("id_alumno"),
-                        rs.getString("nombre"),
-                        rs.getString("apellidos"),
-                        rs.getString("email"),
-                        rs.getString("curso_matriculado"),
-                        rs.getDate("fecha_nac")
-                );
-
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
-                String fechaFormateada = sdf.format(alumno.getFechaNac());
-
-                request.setAttribute("alumno", alumno);
-                request.setAttribute("fechaFormateada", fechaFormateada);
-
-                request.getRequestDispatcher("/crear_editar_alumnos.jsp").forward(request, response);
-            }
-
+        try {
+            Alumno alumno = Modelo.AlumnoDAO.findById(Integer.parseInt(id));
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+            String fechaFormateada = alumno.getFechaNac() != null ? sdf.format(alumno.getFechaNac()) : "";
+            request.setAttribute("alumno", alumno);
+            request.setAttribute("fechaFormateada", fechaFormateada);
+            request.getRequestDispatcher("/crear_editar_alumnos.jsp").forward(request, response);
         } catch (Exception e) {
-            e.printStackTrace();
+            // capture stacktrace and forward to edit view with details
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            request.setAttribute("error", "Error al obtener/editar alumno: " + e.getMessage());
+            request.setAttribute("exceptionStack", sw.toString());
+            request.getRequestDispatcher("/crear_editar_alumnos.jsp").forward(request, response);
         }
     }
 
@@ -164,39 +141,34 @@ public class ServletGestionAlumnos extends HttpServlet {
         String email = request.getParameter("email");
         String curso = request.getParameter("curso_matriculado");
         String fechaStr = request.getParameter("fecha_nac");
+        String grupo = request.getParameter("grupo");
 
-        try (Connection con = ConectarseBD.conectarse(null)) {
-
-            java.sql.Date fecha = java.sql.Date.valueOf(fechaStr);
+        try {
+            java.sql.Date fecha = fechaStr != null && !fechaStr.isEmpty() ? java.sql.Date.valueOf(fechaStr) : null;
 
             if (id != null && !id.isEmpty()) {
-                String sqlUpdate = "UPDATE Alumno SET nombre=?, apellidos=?, email=?, curso_matriculado=?, fecha_nac=? WHERE id_alumno=?";
-                PreparedStatement ps = con.prepareStatement(sqlUpdate);
-
-                ps.setString(1, nombre);
-                ps.setString(2, apellidos);
-                ps.setString(3, email);
-                ps.setString(4, curso);
-                ps.setDate(5, fecha);
-                ps.setInt(6, Integer.parseInt(id));
-
-                ps.executeUpdate();
-
+                Alumno alumno = new Alumno(Integer.parseInt(id), nombre, apellidos, email, curso, fecha, grupo);
+                Modelo.AlumnoDAO.update(alumno);
             } else {
-                String sqlInsert = "INSERT INTO Alumno (nombre, apellidos, email, curso_matriculado, fecha_nac) VALUES (?,?,?,?,?)";
-                PreparedStatement ps = con.prepareStatement(sqlInsert);
-
-                ps.setString(1, nombre);
-                ps.setString(2, apellidos);
-                ps.setString(3, email);
-                ps.setString(4, curso);
-                ps.setDate(5, fecha);
-
-                ps.executeUpdate();
+                Alumno alumno = new Alumno(0, nombre, apellidos, email, curso, fecha, grupo);
+                Modelo.AlumnoDAO.insert(alumno);
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            // capture stacktrace and forward back to create/edit view with submitted data
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            request.setAttribute("error", "Error al guardar alumno: " + e.getMessage());
+            request.setAttribute("exceptionStack", sw.toString());
+            // repopular campos en el formulario
+            request.setAttribute("nombre", nombre);
+            request.setAttribute("apellidos", apellidos);
+            request.setAttribute("email", email);
+            request.setAttribute("curso_matriculado", curso);
+            request.setAttribute("fecha_nac", fechaStr);
+            request.setAttribute("grupo", grupo);
+            request.getRequestDispatcher("/crear_editar_alumnos.jsp").forward(request, response);
+            return;
         }
 
         response.sendRedirect("ServletGestionAlumnos");

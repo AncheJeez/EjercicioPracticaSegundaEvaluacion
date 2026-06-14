@@ -99,6 +99,21 @@
         </header>
         <div class="container mt-5">
             <h2>${practica != null ? 'Editar' : 'Crear'} Práctica</h2>
+
+            <c:if test="${not empty error}">
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> ${error}
+                </div>
+                <c:if test="${not empty exceptionStack}">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Detalles de la excepción</h5>
+                            <pre style="white-space: pre-wrap; font-size: 0.9rem;">${exceptionStack}</pre>
+                        </div>
+                    </div>
+                </c:if>
+            </c:if>
+
             <form action="ServletGestionPracticas" method="post">
 
                 <c:if test="${not empty practica}">

@@ -106,9 +106,9 @@
                 </div>
             </c:if>
             <div class="row mb-3">
-              <label for="email" class="col-sm-2 col-form-label">Correo electrónico:</label>
+              <label for="email" class="col-sm-2 col-form-label">Correo electrónico o nombre de usuario:</label>
               <div class="col-sm-10">
-                <input type="email" class="form-control" id="email" name="email" placeholder="Introduzca su correo electrónico">
+                <input type="text" class="form-control" id="email" name="email" placeholder="Introduzca su correo o su nombre de usuario">
               </div>
             </div>
             <div class="row mb-3">

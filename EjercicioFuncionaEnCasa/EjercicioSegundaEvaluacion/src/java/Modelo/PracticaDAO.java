@@ -13,12 +13,12 @@ public class PracticaDAO {
 
     public static List<Practica> listAllWithDetails() throws Exception {
         List<Practica> practicas = new ArrayList<>();
-        String sql = "SELECT p.id_practica, a.id_alumno, a.nombre AS alumno_nombre, a.apellidos AS alumno_apellidos, e.id_empresa, e.nombre AS empresa_nombre, p.fecha_comienzo, p.fecha_finalizacion, p.comentarios FROM Practica p JOIN Alumno a ON p.alumno_id = a.id_alumno JOIN Empresa e ON p.empresa_id = e.id_empresa";
+        String sql = "SELECT p.id_practica, a.id_alumno, a.nombre AS alumno_nombre, a.apellidos AS alumno_apellidos, a.grupo AS alumno_grupo, e.id_empresa, e.nombre AS empresa_nombre, p.fecha_comienzo, p.fecha_finalizacion, p.comentarios FROM Practica p JOIN Alumno a ON p.alumno_id = a.id_alumno JOIN Empresa e ON p.empresa_id = e.id_empresa";
         try (Connection con = ConectarseBD.conectarse(null);
              Statement stmt = con.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-                Alumno alumno = new Alumno(0, rs.getString("alumno_nombre"), rs.getString("alumno_apellidos"), "", "", null);
+                Alumno alumno = new Alumno(0, rs.getString("alumno_nombre"), rs.getString("alumno_apellidos"), "", "", null, rs.getString("alumno_grupo"));
                 Empresa empresa = new Empresa(rs.getInt("id_empresa"), rs.getString("empresa_nombre"), "", "", "");
                 Practica practica = new Practica(rs.getInt("id_practica"), alumno, empresa, rs.getDate("fecha_comienzo"), rs.getDate("fecha_finalizacion"), rs.getString("comentarios"));
                 practicas.add(practica);
@@ -29,7 +29,7 @@ public class PracticaDAO {
 
     public static Practica findByIdWithDetails(int id) throws Exception {
         String sql = "SELECT p.id_practica, p.fecha_comienzo, p.fecha_finalizacion, p.comentarios, " +
-                     "a.id_alumno, a.nombre, a.apellidos, a.email, a.curso_matriculado, a.fecha_nac, " +
+                     "a.id_alumno, a.nombre, a.apellidos, a.email, a.curso_matriculado, a.fecha_nac, a.grupo, " +
                      "e.id_empresa, e.nombre, e.descripcion,  e.nombre_completo, e.email_tutor_laboral " +
                      "FROM Practica p " +
                      "JOIN Alumno a ON p.alumno_id = a.id_alumno " +
@@ -40,7 +40,7 @@ public class PracticaDAO {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    Alumno alumno = new Alumno(rs.getInt("id_alumno"), rs.getString("nombre"), rs.getString("apellidos"), rs.getString("email"), rs.getString("curso_matriculado"), rs.getDate("fecha_nac"));
+                    Alumno alumno = new Alumno(rs.getInt("id_alumno"), rs.getString("nombre"), rs.getString("apellidos"), rs.getString("email"), rs.getString("curso_matriculado"), rs.getDate("fecha_nac"), rs.getString("grupo"));
                     Empresa empresa = new Empresa(rs.getInt("id_empresa"), rs.getString("nombre"), rs.getString("descripcion"), rs.getString("nombre_completo"), rs.getString("email_tutor_laboral"));
                     return new Practica(rs.getInt("id_practica"), alumno, empresa, rs.getDate("fecha_comienzo"), rs.getDate("fecha_finalizacion"), rs.getString("comentarios"));
                 }
@@ -87,7 +87,7 @@ public class PracticaDAO {
         try (Connection con = ConectarseBD.conectarse(null);
              ResultSet rs = con.createStatement().executeQuery("SELECT id_alumno, nombre, apellidos FROM Alumno")) {
             while (rs.next()) {
-                listaAlumnos.add(new Alumno(rs.getInt("id_alumno"), rs.getString("nombre"), rs.getString("apellidos"), "", "", null));
+                listaAlumnos.add(new Alumno(rs.getInt("id_alumno"), rs.getString("nombre"), rs.getString("apellidos"), "", "", null, rs.getString("grupo")));
             }
         }
         return listaAlumnos;

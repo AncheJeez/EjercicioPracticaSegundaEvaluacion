@@ -33,8 +33,8 @@ public class AutorizacionFilter implements Filter {
         String uri = req.getRequestURI();
         String context = req.getContextPath();
 
-        // Rutas públicas (login, recursos estáticos, páginas públicas)
-        if (uri.startsWith(context + "/Logearse") || uri.endsWith("LogIn.jsp") || uri.startsWith(context + "/resources/")
+        // Rutas públicas (login, registro, recursos estáticos, páginas públicas)
+        if (uri.startsWith(context + "/Logearse") || uri.startsWith(context + "/Registrarse") || uri.endsWith("LogIn.jsp") || uri.endsWith("Register.jsp") || uri.startsWith(context + "/resources/")
                 || uri.equals(context + "/") || uri.endsWith("index.jsp") ) {
             chain.doFilter(request, response);
             return;

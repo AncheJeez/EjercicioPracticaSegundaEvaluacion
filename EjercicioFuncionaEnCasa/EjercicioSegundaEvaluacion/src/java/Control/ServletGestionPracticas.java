@@ -98,146 +98,75 @@ public class ServletGestionPracticas extends HttpServlet {
         String enviarCorreo = request.getParameter("enviarCorreo"); // checkbox
         String emailDestinatario = request.getParameter("email");    // input email
 
-        try (Connection con = ConectarseBD.conectarse(null)) {
-            if (id == null || id.isEmpty()) {
-                // INSERT
-                String sqlInsert = "INSERT INTO Practica (alumno_id, empresa_id, fecha_comienzo, fecha_finalizacion, comentarios) VALUES (?, ?, ?, ?, ?)";
-                try (PreparedStatement ps = con.prepareStatement(sqlInsert)) {
-                    ps.setInt(1, Integer.parseInt(alumnoId));
-                    ps.setInt(2, Integer.parseInt(empresaId));
-                    ps.setDate(3, java.sql.Date.valueOf(fechaInicio));
-                    ps.setDate(4, java.sql.Date.valueOf(fechaFin));
-                    ps.setString(5, comentarios);
-                    ps.executeUpdate();
-                }
-            } else {
-                // UPDATE
-                String sqlUpdate = "UPDATE Practica SET alumno_id=?, empresa_id=?, fecha_comienzo=?, fecha_finalizacion=?, comentarios=? WHERE id_practica=?";
-                try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
-                    ps.setInt(1, Integer.parseInt(alumnoId));
-                    ps.setInt(2, Integer.parseInt(empresaId));
-                    ps.setDate(3, java.sql.Date.valueOf(fechaInicio));
-                    ps.setDate(4, java.sql.Date.valueOf(fechaFin));
-                    ps.setString(5, comentarios);
-                    ps.setInt(6, Integer.parseInt(id));
-                    ps.executeUpdate();
-                }
-            }
-            
-            if ("on".equals(enviarCorreo) && emailDestinatario != null && !emailDestinatario.isEmpty()) {
+        try {
+            Alumno alumno = new Alumno();
+            alumno.setIdAlumno(Integer.parseInt(alumnoId));
+            Empresa empresa = new Empresa();
+            empresa.setId_empresa(Integer.parseInt(empresaId));
+            Practica practica = new Practica();
+            practica.setAlumno(alumno);
+            practica.setEmpresa(empresa);
+            practica.setFecha_comienzo(java.sql.Date.valueOf(fechaInicio));
+            practica.setFecha_finalizacion(java.sql.Date.valueOf(fechaFin));
+            practica.setComentarios(comentarios);
 
+            if (id == null || id.isEmpty()) {
+                PracticaDAO.insert(practica);
+            } else {
+                practica.setId_practica(Integer.parseInt(id));
+                PracticaDAO.update(practica);
+            }
+
+            if ("on".equals(enviarCorreo) && emailDestinatario != null && !emailDestinatario.isEmpty()) {
                 String remitente = "sanchez.gonzalez.andres.jesus@iescamas.es";      // tu correo
                 String password = "";             // contraseña o app password
 
-                Email email = new Email(
-                        remitente,
-                        password,
-                        emailDestinatario,
-                        "Registro de Práctica",
-                        "Hola, se ha registrado tu práctica correctamente."
-                );
-
+                Email email = new Email(remitente, password, emailDestinatario, "Registro de Práctica", "Hola, se ha registrado tu práctica correctamente.");
                 try {
                     email.enviarEsteEmail();
-                    System.out.println("Correo enviado a " + emailDestinatario);
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     request.setAttribute("errorCorreo", "No se pudo enviar el correo: " + ex.getMessage());
                 }
             }
-            
+
             response.sendRedirect("ServletGestionPracticas");
         } catch (Exception e) {
-            e.printStackTrace();
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
             request.setAttribute("error", "Error al guardar la práctica: " + e.getMessage());
+            request.setAttribute("exceptionStack", sw.toString());
             request.getRequestDispatcher("/crear_editar_practicas.jsp").forward(request, response);
         }
     }
     
     private void cargarListas(HttpServletRequest request) {
-        try (Connection con = ConectarseBD.conectarse(null)) {
-
-            List<Alumno> listaAlumnos = new ArrayList<>();
-            ResultSet rsAlumnos = con.createStatement().executeQuery(
-                "SELECT id_alumno, nombre, apellidos FROM Alumno"
-            );
-            while (rsAlumnos.next()) {
-                listaAlumnos.add(new Alumno(
-                    rsAlumnos.getInt("id_alumno"),
-                    rsAlumnos.getString("nombre"),
-                    rsAlumnos.getString("apellidos"),
-                    "", "", null
-                ));
-            }
-            request.setAttribute("listaAlumnos", listaAlumnos);
-
-            List<Empresa> listaEmpresas = new ArrayList<>();
-            ResultSet rsEmpresas = con.createStatement().executeQuery(
-                "SELECT id_empresa, nombre AS nombre, descripcion, nombre_completo, email_tutor_laboral FROM Empresa"
-            );
-            while (rsEmpresas.next()) {
-                listaEmpresas.add(new Empresa(
-                    rsEmpresas.getInt("id_empresa"),
-                    rsEmpresas.getString("nombre"),
-                    rsEmpresas.getString("descripcion"),
-                    rsEmpresas.getString("nombre_completo"),
-                    rsEmpresas.getString("email_tutor_laboral")
-                ));
-            }
-            request.setAttribute("listaEmpresas", listaEmpresas);
-
+        try {
+            request.setAttribute("listaAlumnos", PracticaDAO.listAlumnosForSelect());
+            request.setAttribute("listaEmpresas", PracticaDAO.listEmpresasForSelect());
         } catch (Exception e) {
-            e.printStackTrace();
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            request.setAttribute("error", "Error al cargar listas auxiliares: " + e.getMessage());
+            request.setAttribute("exceptionStack", sw.toString());
+            // allow views to render; lists may be null
         }
     }
 
     
     private void listarPractica(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        List<Practica> practicas = new ArrayList<>();
-        
-        // Obtener datos de la base de datos
-        try (Connection con = ConectarseBD.conectarse(null);
-             Statement stmt = con.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT p.id_practica, a.nombre AS alumno_nombre, a.apellidos AS alumno_apellidos, e.id_empresa, e.nombre AS empresa_nombre, p.fecha_comienzo, p.fecha_finalizacion, p.comentarios FROM Practica p JOIN Alumno a ON p.alumno_id = a.id_alumno JOIN Empresa e ON p.empresa_id = e.id_empresa")) {
-
-            while (rs.next()) {
-                Alumno alumno = new Alumno(
-                        0,
-                        rs.getString("alumno_nombre"),
-                        rs.getString("alumno_apellidos"),
-                        "",
-                        "",
-                        null
-                );
-                
-                Empresa empresa = new Empresa(
-                        rs.getInt("id_empresa"),
-                        rs.getString("empresa_nombre"), 
-                        "",
-                        "",
-                        "" 
-                );
-                
-                Practica practica = new Practica(
-                        rs.getInt("id_practica"),
-                        alumno, 
-                        empresa, 
-                        rs.getDate("fecha_comienzo"),
-                        rs.getDate("fecha_finalizacion"),
-                        rs.getString("comentarios")
-                );
-                
-                practicas.add(practica);
-            }
-
+        try {
+            List<Practica> practicas = PracticaDAO.listAllWithDetails();
             request.setAttribute("practicas", practicas);
             cargarListas(request);
             request.getRequestDispatcher("/gestion_practicas.jsp").forward(request, response);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ServletGestionPracticas.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception e) {
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            request.setAttribute("error", "Error al listar prácticas: " + e.getMessage());
+            request.setAttribute("exceptionStack", sw.toString());
+            request.getRequestDispatcher("/gestion_practicas.jsp").forward(request, response);
         }
     }
 
@@ -245,64 +174,23 @@ public class ServletGestionPracticas extends HttpServlet {
             throws ServletException, IOException {
 
         try (Connection con = ConectarseBD.conectarse(null)) {
-
-            String sql = "SELECT p.id_practica, p.fecha_comienzo, p.fecha_finalizacion, p.comentarios, " +
-                         "a.id_alumno, a.nombre, a.apellidos, a.email, a.curso_matriculado, a.fecha_nac, " +
-                         "e.id_empresa, e.nombre, e.descripcion,  e.nombre_completo, e.email_tutor_laboral " +
-                         "FROM Practica p " +
-                         "JOIN Alumno a ON p.alumno_id = a.id_alumno " +
-                         "JOIN Empresa e ON p.empresa_id = e.id_empresa " +
-                         "WHERE p.id_practica = ?";
-
-            PreparedStatement ps = con.prepareStatement(sql);
-            ps.setInt(1, Integer.parseInt(id));
-
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-
-                // Crear Alumno
-                Alumno alumno = new Alumno(
-                        rs.getInt("id_alumno"),
-                        rs.getString("nombre"),
-                        rs.getString("apellidos"),
-                        rs.getString("email"),
-                        rs.getString("curso_matriculado"),
-                        rs.getDate("fecha_nac")
-                );
-
-                Empresa empresa = new Empresa(
-                        rs.getInt("id_empresa"),
-                        rs.getString("nombre"),
-                        rs.getString("descripcion"),
-                        rs.getString("nombre_completo"),
-                        rs.getString("email_tutor_laboral")
-                );
-
-                Practica practica = new Practica(
-                        rs.getInt("id_practica"),
-                        alumno,
-                        empresa,
-                        rs.getDate("fecha_comienzo"),
-                        rs.getDate("fecha_finalizacion"),
-                        rs.getString("comentarios")
-                );
-
+            Practica practica = PracticaDAO.findByIdWithDetails(Integer.parseInt(id));
+            if (practica != null) {
                 java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
-
                 String fechaInicioFormateada = sdf.format(practica.getFecha_comienzo());
                 String fechaFinFormateada = sdf.format(practica.getFecha_finalizacion());
-
                 request.setAttribute("practica", practica);
                 request.setAttribute("fechaInicioFormateada", fechaInicioFormateada);
                 request.setAttribute("fechaFinFormateada", fechaFinFormateada);
-
                 cargarListas(request);
                 request.getRequestDispatcher("/crear_editar_practicas.jsp").forward(request, response);
             }
-
         } catch (Exception e) {
-            e.printStackTrace();
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            request.setAttribute("error", "Error al obtener/editar práctica: " + e.getMessage());
+            request.setAttribute("exceptionStack", sw.toString());
+            request.getRequestDispatcher("/crear_editar_practicas.jsp").forward(request, response);
         }
     }
 
@@ -316,9 +204,19 @@ public class ServletGestionPracticas extends HttpServlet {
                 System.out.println("Practica con ID " + id + " borrado correctamente.");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            request.setAttribute("error", "Error al borrar práctica: " + e.getMessage());
+            request.setAttribute("exceptionStack", sw.toString());
+            request.getRequestDispatcher("/gestion_practicas.jsp").forward(request, response);
+            return;
         } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ServletGestionPracticas.class.getName()).log(Level.SEVERE, null, ex);
+            java.io.StringWriter sw = new java.io.StringWriter();
+            ex.printStackTrace(new java.io.PrintWriter(sw));
+            request.setAttribute("error", "Error interno: " + ex.getMessage());
+            request.setAttribute("exceptionStack", sw.toString());
+            request.getRequestDispatcher("/gestion_practicas.jsp").forward(request, response);
+            return;
         }
 
         response.sendRedirect("ServletGestionPracticas");

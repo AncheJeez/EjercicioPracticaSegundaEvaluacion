@@ -105,6 +105,20 @@
         </header>
         <div class="container text-center mt-5">
             <h2>Listado de Alumnos</h2>
+
+            <c:if test="${not empty error}">
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> ${error}
+                </div>
+                <c:if test="${not empty exceptionStack}">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Detalles de la excepción</h5>
+                            <pre style="white-space: pre-wrap; font-size: 0.9rem;">${exceptionStack}</pre>
+                        </div>
+                    </div>
+                </c:if>
+            </c:if>
         
             <c:if test="${empty alumnos}">
                 <div class="alert alert-warning" role="alert">
@@ -120,6 +134,7 @@
                         <th>Email</th>
                         <th>Curso Matriculado</th>
                         <th>Fecha de Nacimiento</th>
+                        <th>Grupo</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -129,8 +144,19 @@
                             <td>${alumno.nombre}</td>
                             <td>${alumno.apellidos}</td>
                             <td>${alumno.email}</td>
-                            <td>${alumno.cursoMatriculado}</td>
-                            <td>${alumno.fechaNac}</td>
+                            <td>
+                                <c:choose>
+                                    <c:when test="${not empty alumno.cursoMatriculado}">${alumno.cursoMatriculado}</c:when>
+                                    <c:otherwise>no tiene curso</c:otherwise>
+                                </c:choose>
+                            </td>
+                            <td>
+                                <c:choose>
+                                    <c:when test="${not empty alumno.fechaNac}">${alumno.fechaNac}</c:when>
+                                    <c:otherwise>-</c:otherwise>
+                                </c:choose>
+                            </td>
+                            <td>${alumno.grupo}</td>
                             <td>
                                 <a href="ServletGestionAlumnos?id=${alumno.idAlumno}" class="btn btn-warning btn-sm">Editar</a>
 

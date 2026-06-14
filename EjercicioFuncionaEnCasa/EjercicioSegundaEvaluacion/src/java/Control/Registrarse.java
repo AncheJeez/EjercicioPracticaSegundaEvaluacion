@@ -55,6 +55,7 @@ public class Registrarse extends HttpServlet {
             HttpSession httpSession = request.getSession();
             httpSession.setAttribute("nombre",nombre);
             httpSession.setAttribute("apellidos",apellidos);
+            httpSession.setAttribute("directiva", directiva);
             request.getRequestDispatcher("index.jsp").forward(request, response);
         } catch (Exception ex) {
             ex.printStackTrace();

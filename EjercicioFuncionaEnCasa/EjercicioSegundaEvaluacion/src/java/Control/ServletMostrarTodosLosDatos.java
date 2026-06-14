@@ -99,7 +99,8 @@ public class ServletMostrarTodosLosDatos extends HttpServlet {
                     rsAlumnos.getString("apellidos"),
                     rsAlumnos.getString("email"),
                     rsAlumnos.getString("curso_matriculado"),
-                    rsAlumnos.getDate("fecha_nac")
+                    rsAlumnos.getDate("fecha_nac"),
+                    rsAlumnos.getString("grupo")
                 ));
             }
             

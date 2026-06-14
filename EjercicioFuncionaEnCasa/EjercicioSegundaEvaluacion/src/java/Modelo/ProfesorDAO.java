@@ -12,11 +12,12 @@ import java.sql.SQLException;
  */
 public class ProfesorDAO {
 
-    public static Profesor authenticate(String email, String password) throws Exception {
+    public static Profesor authenticate(String emailOrName, String password) throws Exception {
         try (Connection con = ConectarseBD.conectarse(null);
-             PreparedStatement ps = con.prepareStatement("SELECT id_profesor, nombre, apellidos, email, password, directiva FROM Profesor WHERE email = ? AND password = ?")) {
-            ps.setString(1, email);
-            ps.setString(2, password);
+             PreparedStatement ps = con.prepareStatement("SELECT id_profesor, nombre, apellidos, email, password, directiva FROM Profesor WHERE (email = ? OR nombre = ?) AND password = ?")) {
+            ps.setString(1, emailOrName);
+            ps.setString(2, emailOrName);
+            ps.setString(3, password);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     Profesor p = new Profesor();
