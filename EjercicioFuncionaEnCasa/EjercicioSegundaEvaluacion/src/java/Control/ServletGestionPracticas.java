@@ -12,13 +12,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.List;
 
 import Modelo.PracticaDAO;
@@ -26,17 +19,8 @@ import Modelo.Alumno;
 import Modelo.Empresa;
 import Modelo.Practica;
 import Modelo.Email;
-import Modelo.Alumno;
-import Modelo.Email;
-import Modelo.Empresa;
-import Modelo.Practica;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import Conectividad.ConectarseBD;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 
 @WebServlet(name = "ServletGestionPracticas", urlPatterns = {"/ServletGestionPracticas"})
 public class ServletGestionPracticas extends HttpServlet {
@@ -173,12 +157,12 @@ public class ServletGestionPracticas extends HttpServlet {
     private void editarPractica(HttpServletRequest request, HttpServletResponse response, String id)
             throws ServletException, IOException {
 
-        try (Connection con = ConectarseBD.conectarse(null)) {
+        try {
             Practica practica = PracticaDAO.findByIdWithDetails(Integer.parseInt(id));
             if (practica != null) {
                 java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
-                String fechaInicioFormateada = sdf.format(practica.getFecha_comienzo());
-                String fechaFinFormateada = sdf.format(practica.getFecha_finalizacion());
+                String fechaInicioFormateada = practica.getFecha_comienzo() != null ? sdf.format(practica.getFecha_comienzo()) : null;
+                String fechaFinFormateada = practica.getFecha_finalizacion() != null ? sdf.format(practica.getFecha_finalizacion()) : null;
                 request.setAttribute("practica", practica);
                 request.setAttribute("fechaInicioFormateada", fechaInicioFormateada);
                 request.setAttribute("fechaFinFormateada", fechaFinFormateada);
@@ -196,24 +180,12 @@ public class ServletGestionPracticas extends HttpServlet {
 
     private void borrarPractica(HttpServletRequest request, HttpServletResponse response, String id)
             throws ServletException, IOException {
-        try (Connection con = ConectarseBD.conectarse(null)) {
-            String sqlDelete = "DELETE FROM Practica WHERE id_practica = ?";
-            try (PreparedStatement ps = con.prepareStatement(sqlDelete)) {
-                ps.setInt(1, Integer.parseInt(id));
-                ps.executeUpdate();
-                System.out.println("Practica con ID " + id + " borrado correctamente.");
-            }
-        } catch (SQLException e) {
+        try {
+            PracticaDAO.delete(Integer.parseInt(id));
+        } catch (Exception e) {
             java.io.StringWriter sw = new java.io.StringWriter();
             e.printStackTrace(new java.io.PrintWriter(sw));
             request.setAttribute("error", "Error al borrar práctica: " + e.getMessage());
-            request.setAttribute("exceptionStack", sw.toString());
-            request.getRequestDispatcher("/gestion_practicas.jsp").forward(request, response);
-            return;
-        } catch (ClassNotFoundException ex) {
-            java.io.StringWriter sw = new java.io.StringWriter();
-            ex.printStackTrace(new java.io.PrintWriter(sw));
-            request.setAttribute("error", "Error interno: " + ex.getMessage());
             request.setAttribute("exceptionStack", sw.toString());
             request.getRequestDispatcher("/gestion_practicas.jsp").forward(request, response);
             return;

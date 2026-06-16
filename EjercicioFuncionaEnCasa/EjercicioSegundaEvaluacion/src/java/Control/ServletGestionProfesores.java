@@ -8,13 +8,6 @@ import Modelo.Profesor;
 import Modelo.ProfesorDAO;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-
-import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -23,11 +16,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import Conectividad.ConectarseBD;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 
 /**
  *
@@ -83,33 +71,11 @@ public class ServletGestionProfesores extends HttpServlet {
     
     private void listarProfesores(HttpServletRequest request, HttpServletResponse response)
                 throws ServletException, IOException {
-
-            List<Profesor> profesores = new ArrayList<>();
-
-            try (Connection con = ConectarseBD.conectarse(null);
-                 Statement stmt = con.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT id_profesor, nombre, apellidos, email, password, directiva FROM Profesor")) {
-
-                while (rs.next()) {
-                    Profesor profesor = new Profesor(
-                            rs.getInt("id_profesor"),
-                            rs.getString("nombre"),
-                            rs.getString("apellidos"),
-                            rs.getString("email"),
-                            rs.getString("password"),
-                            rs.getBoolean("directiva")
-                    );
-
-                    profesores.add(profesor);
-                }
-
-                // Ponemos la lista como atributo del request
+            try {
+                List<Profesor> profesores = ProfesorDAO.listAll();
                 request.setAttribute("listaProfesores", profesores);
-
-                // Redirigimos al JSP que muestra la lista
                 request.getRequestDispatcher("/gestion_profesores.jsp").forward(request, response);
-
-            } catch (SQLException | ClassNotFoundException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 request.setAttribute("error", "Error al listar los profesores: " + e.getMessage());
                 request.getRequestDispatcher("/error.jsp").forward(request, response);
@@ -117,61 +83,32 @@ public class ServletGestionProfesores extends HttpServlet {
         }
 
         private void borrarProfesor(HttpServletRequest request, HttpServletResponse response, String id)
-            throws ServletException, IOException {
-        if (id == null || id.isEmpty()) {
-            response.sendRedirect("ServletGestionProfesores");
-            return;
-        }
-
-        try (Connection con = ConectarseBD.conectarse(null)) {
-            String sqlDelete = "DELETE FROM Profesor WHERE id_profesor = ?";
-            try (PreparedStatement ps = con.prepareStatement(sqlDelete)) {
-                ps.setInt(1, Integer.parseInt(id));
-                int filasAfectadas = ps.executeUpdate();
-                if (filasAfectadas > 0) {
-                    System.out.println("Profesor con ID " + id + " borrado correctamente.");
-                } else {
-                    System.out.println("No se encontró profesor con ID " + id);
-                }
+                throws ServletException, IOException {
+            if (id == null || id.isEmpty()) {
+                response.sendRedirect("ServletGestionProfesores");
+                return;
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            request.setAttribute("error", "Error al borrar el profesor: " + e.getMessage());
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ServletGestionProfesores.class.getName()).log(Level.SEVERE, null, ex);
-        }
 
-        response.sendRedirect("ServletGestionProfesores");
-    }
+            try {
+                ProfesorDAO.delete(Integer.parseInt(id));
+            } catch (Exception e) {
+                e.printStackTrace();
+                request.setAttribute("error", "Error al borrar el profesor: " + e.getMessage());
+                Logger.getLogger(ServletGestionProfesores.class.getName()).log(Level.SEVERE, null, e);
+            }
+
+            response.sendRedirect("ServletGestionProfesores");
+        }
         
     private void editarProfesor(HttpServletRequest request, HttpServletResponse response, String id)
         throws ServletException, IOException {
 
-        try (Connection con = ConectarseBD.conectarse(null)) {
-
-            String sql = "SELECT id_profesor, nombre, apellidos, email, password, directiva " +
-                         "FROM Profesor WHERE id_profesor = ?";
-
-            PreparedStatement ps = con.prepareStatement(sql);
-            ps.setInt(1, Integer.parseInt(id));
-
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                Profesor profesor = new Profesor(
-                        rs.getInt("id_profesor"),
-                        rs.getString("nombre"),
-                        rs.getString("apellidos"),
-                        rs.getString("email"),
-                        rs.getString("password"),
-                        rs.getBoolean("directiva")
-                );
-
+        try {
+            if (id != null && !id.isEmpty()) {
+                Profesor profesor = ProfesorDAO.findById(Integer.parseInt(id));
                 request.setAttribute("profesor", profesor);
-
-                request.getRequestDispatcher("/crear_editar_profesores.jsp").forward(request, response);
             }
-
+            request.getRequestDispatcher("/crear_editar_profesores.jsp").forward(request, response);
         } catch (Exception e) {
             e.printStackTrace();
             request.setAttribute("error", "Error al cargar el profesor: " + e.getMessage());
@@ -192,31 +129,19 @@ public class ServletGestionProfesores extends HttpServlet {
         String directivaParam = request.getParameter("directiva");
         boolean directiva = "on".equals(directivaParam);
 
-        try (Connection con = ConectarseBD.conectarse(null)) {
+        try {
+            Profesor p = new Profesor();
+            p.setNombre(nombre);
+            p.setApellidos(apellidos);
+            p.setEmail(email);
+            p.setPassword(password);
+            p.setDirectiva(directiva);
 
             if (id == null || id.isEmpty()) {
-                // INSERT: crear nuevo profesor
-                String sqlInsert = "INSERT INTO Profesor (nombre, apellidos, email, password, directiva) VALUES (?, ?, ?, ?, ?)";
-                try (PreparedStatement ps = con.prepareStatement(sqlInsert)) {
-                    ps.setString(1, nombre);
-                    ps.setString(2, apellidos);
-                    ps.setString(3, email);
-                    ps.setString(4, password);
-                    ps.setBoolean(5, directiva);
-                    ps.executeUpdate();
-                }
+                ProfesorDAO.insert(p);
             } else {
-                // UPDATE: editar profesor existente
-                String sqlUpdate = "UPDATE Profesor SET nombre=?, apellidos=?, email=?, password=?, directiva=? WHERE id_profesor=?";
-                try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
-                    ps.setString(1, nombre);
-                    ps.setString(2, apellidos);
-                    ps.setString(3, email);
-                    ps.setString(4, password);
-                    ps.setBoolean(5, directiva);
-                    ps.setInt(6, Integer.parseInt(id));
-                    ps.executeUpdate();
-                }
+                p.setIdProfesor(Integer.parseInt(id));
+                ProfesorDAO.update(p);
             }
 
             response.sendRedirect("ServletGestionProfesores");
@@ -224,7 +149,7 @@ public class ServletGestionProfesores extends HttpServlet {
         } catch (Exception e) {
             e.printStackTrace();
             request.setAttribute("error", "Error al guardar el profesor: " + e.getMessage());
-            request.getRequestDispatcher("/crear_editar_profesor.jsp").forward(request, response);
+            request.getRequestDispatcher("/crear_editar_profesores.jsp").forward(request, response);
         }
     }
 

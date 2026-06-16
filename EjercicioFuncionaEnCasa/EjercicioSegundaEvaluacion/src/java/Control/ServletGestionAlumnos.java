@@ -8,33 +8,35 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Part;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.ResultSet;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
+import java.nio.charset.StandardCharsets;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import Modelo.Alumno;
 import Modelo.AlumnoDAO;
+import Modelo.Practica;
+import Modelo.PracticaDAO;
+import Modelo.Empresa;
+import Modelo.EmpresaDAO;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import Conectividad.ConectarseBD;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 
 /**
  *
  * @author AndJe
  */
 @WebServlet(name = "ServletGestionAlumnos", urlPatterns = {"/ServletGestionAlumnos"})
+@MultipartConfig
 public class ServletGestionAlumnos extends HttpServlet {
 
     /**
@@ -98,8 +100,13 @@ public class ServletGestionAlumnos extends HttpServlet {
     private void listarAlumnos(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            List<Alumno> alumnos = Modelo.AlumnoDAO.listAll();
+            String cursoFilter = request.getParameter("curso");
+            List<Alumno> alumnos = Modelo.AlumnoDAO.listByCurso(cursoFilter);
             request.setAttribute("alumnos", alumnos);
+            // also provide courses list for the filter UI
+            List<String> cursos = Modelo.AlumnoDAO.listCursos();
+            request.setAttribute("cursos", cursos);
+            request.setAttribute("cursoSeleccionado", cursoFilter);
             request.getRequestDispatcher("/gestion_alumnos.jsp").forward(request, response);
         } catch (Exception e) {
             // capture stacktrace and show the gestion view with details
@@ -135,6 +142,164 @@ public class ServletGestionAlumnos extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        // Handle CSV upload if present
+        String action = request.getParameter("action");
+        Part filePart = null;
+        try {
+            filePart = request.getPart("csvfile");
+        } catch (IllegalStateException | IOException | ServletException ex) {
+            // not a multipart request or no part
+            filePart = null;
+        }
+
+        if ((action != null && action.equals("upload")) || filePart != null) {
+            // process CSV upload
+            if (filePart == null || filePart.getSize() == 0) {
+                request.setAttribute("error", "No se ha seleccionado ningún fichero CSV.");
+                listarAlumnos(request, response);
+                return;
+            }
+
+            int inserted = 0;
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(filePart.getInputStream(), StandardCharsets.UTF_8))) {
+                String first = reader.readLine();
+                if (first == null) {
+                    request.setAttribute("error", "CSV vacío");
+                    listarAlumnos(request, response);
+                    return;
+                }
+
+                if (first.trim().equalsIgnoreCase("#ALUMNOS")) {
+                    // New two-section format
+                    // Delete practicas first (FK), then alumnos
+                    Modelo.PracticaDAO.deleteAll();
+                    Modelo.AlumnoDAO.deleteAll();
+
+                    // read alumnos header
+                    String alumnosHeader = reader.readLine();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (line.trim().equalsIgnoreCase("#PRACTICAS")) break;
+                        if (line.trim().isEmpty()) continue;
+                        List<String> cols = parseCsvLine(line);
+                        // alumno columns: id_alumno,Nombre,Apellidos,Email,FechaNacimiento,Curso,Grupo
+                        String nombre = cols.size() > 1 ? cols.get(1) : "";
+                        String apellidos = cols.size() > 2 ? cols.get(2) : "";
+                        String email = cols.size() > 3 ? cols.get(3) : "";
+                        String fechaStr = cols.size() > 4 ? cols.get(4) : null;
+                        String curso = cols.size() > 5 ? cols.get(5) : null;
+                        String grupo = cols.size() > 6 ? cols.get(6) : null;
+
+                        java.sql.Date fecha = null;
+                        if (fechaStr != null && !fechaStr.isEmpty() && !fechaStr.equalsIgnoreCase("null")) {
+                            try { fecha = java.sql.Date.valueOf(fechaStr); } catch (Exception ex) {}
+                        }
+
+                        try {
+                            Alumno a = new Alumno(0, nombre, apellidos, email, curso, fecha, grupo);
+                            Modelo.AlumnoDAO.insert(a);
+                            inserted++;
+                        } catch (Exception ex) {
+                            // skip bad rows but continue
+                        }
+                    }
+
+                    // now read practicas header
+                    String practicasHeader = reader.readLine(); // header line after #PRACTICAS
+                    while ((line = reader.readLine()) != null) {
+                        if (line.trim().isEmpty()) continue;
+                        List<String> cols = parseCsvLine(line);
+                        // columns: id_practica,alumno_email,empresa_id,empresa_nombre,fecha_comienzo,fecha_finalizacion,comentarios
+                        String alumnoEmail = cols.size() > 1 ? cols.get(1) : null;
+                        String empresaIdStr = cols.size() > 2 ? cols.get(2) : null;
+                        String empresaNombre = cols.size() > 3 ? cols.get(3) : null;
+                        String fechaComStr = cols.size() > 4 ? cols.get(4) : null;
+                        String fechaFinStr = cols.size() > 5 ? cols.get(5) : null;
+                        String comentarios = cols.size() > 6 ? cols.get(6) : null;
+
+                        try {
+                            Integer alumnoId = alumnoEmail != null ? Modelo.AlumnoDAO.findIdByEmail(alumnoEmail) : null;
+                            if (alumnoId == null) continue; // cannot attach practice
+
+                            // ensure empresa exists
+                            if (empresaNombre != null && !empresaNombre.trim().isEmpty()) {
+                                Modelo.EmpresaDAO.insertIfNotExistsByName(empresaNombre);
+                            }
+                            Modelo.Empresa empresa = null;
+                            if (empresaNombre != null && !empresaNombre.trim().isEmpty()) {
+                                empresa = Modelo.EmpresaDAO.findByName(empresaNombre);
+                            }
+                            if (empresa == null) continue; // skip practice if no empresa
+
+                            java.sql.Date fechaCom = null;
+                            java.sql.Date fechaFin = null;
+                            if (fechaComStr != null && !fechaComStr.isEmpty() && !fechaComStr.equalsIgnoreCase("null")) {
+                                try { fechaCom = java.sql.Date.valueOf(fechaComStr); } catch (Exception ex) {}
+                            }
+                            if (fechaFinStr != null && !fechaFinStr.isEmpty() && !fechaFinStr.equalsIgnoreCase("null")) {
+                                try { fechaFin = java.sql.Date.valueOf(fechaFinStr); } catch (Exception ex) {}
+                            }
+
+                            Alumno aRef = new Alumno();
+                            aRef.setIdAlumno(alumnoId);
+                            Practica p = new Practica(0, aRef, empresa, fechaCom, fechaFin, comentarios);
+                            Modelo.PracticaDAO.insert(p);
+                        } catch (Exception ex) {
+                            // skip bad practice rows
+                        }
+                    }
+
+                    request.setAttribute("message", "CSV importado. Alumnos insertados: " + inserted);
+                    listarAlumnos(request, response);
+                    return;
+
+                } else {
+                    // Fallback: old single-row-per-practice CSV (handle by inserting unique emails)
+                    Modelo.PracticaDAO.deleteAll();
+                    Modelo.AlumnoDAO.deleteAll();
+                    java.util.Set<String> seen = new java.util.HashSet<>();
+                    String line = first; // first line was header previously; treat it as header so skip
+                    // skip header already read, now continue
+                    while ((line = reader.readLine()) != null) {
+                        if (line.trim().isEmpty()) continue;
+                        List<String> cols = parseCsvLine(line);
+                        String nombre = cols.size() > 1 ? cols.get(1) : "";
+                        String apellidos = cols.size() > 2 ? cols.get(2) : "";
+                        String email = cols.size() > 3 ? cols.get(3) : "";
+                        String fechaStr = cols.size() > 4 ? cols.get(4) : null;
+                        String curso = cols.size() > 5 ? cols.get(5) : null;
+                        String grupo = null;
+
+                        if (email == null || email.trim().isEmpty()) continue;
+                        if (seen.contains(email)) continue;
+
+                        java.sql.Date fecha = null;
+                        if (fechaStr != null && !fechaStr.isEmpty() && !fechaStr.equalsIgnoreCase("null")) {
+                            try { fecha = java.sql.Date.valueOf(fechaStr); } catch (Exception ex) {}
+                        }
+
+                        try {
+                            Alumno a = new Alumno(0, nombre, apellidos, email, curso, fecha, grupo);
+                            Modelo.AlumnoDAO.insert(a);
+                            seen.add(email);
+                            inserted++;
+                        } catch (Exception ex) {}
+                    }
+
+                    request.setAttribute("message", "CSV importado (formato legacy). Alumnos insertados: " + inserted);
+                    listarAlumnos(request, response);
+                    return;
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                request.setAttribute("error", "Error al procesar CSV: " + e.getMessage());
+                listarAlumnos(request, response);
+                return;
+            }
+        }
+
+        // existing single-alumno form handling
         String id = request.getParameter("id");
         String nombre = request.getParameter("nombre");
         String apellidos = request.getParameter("apellidos");
@@ -172,6 +337,40 @@ public class ServletGestionAlumnos extends HttpServlet {
         }
 
         response.sendRedirect("ServletGestionAlumnos");
+    }
+
+    // Simple CSV parser that respects quoted fields
+    private List<String> parseCsvLine(String line) {
+        List<String> out = new ArrayList<>();
+        if (line == null) return out;
+        StringBuilder cur = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (inQuotes) {
+                if (c == '"') {
+                    if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                        cur.append('"');
+                        i++; // skip escaped quote
+                    } else {
+                        inQuotes = false;
+                    }
+                } else {
+                    cur.append(c);
+                }
+            } else {
+                if (c == '"') {
+                    inQuotes = true;
+                } else if (c == ',') {
+                    out.add(cur.toString());
+                    cur.setLength(0);
+                } else {
+                    cur.append(c);
+                }
+            }
+        }
+        out.add(cur.toString());
+        return out;
     }
 
 

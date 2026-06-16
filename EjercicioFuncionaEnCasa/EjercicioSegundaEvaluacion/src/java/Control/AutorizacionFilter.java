@@ -49,12 +49,11 @@ public class AutorizacionFilter implements Filter {
         }
 
         // Determinar si la ruta requiere rol de directiva (administración)
+        // Only truly admin-only paths (directiva) remain here.
         String[] adminPaths = new String[] {
             "/ServletGestionProfesores",
-            "/ServletGestionPracticas",
-            "/ServletGestionEmpresas",
             "/ServletGestionCurso",
-            "/ServletGestionAlumnos"
+            "/ServletEstadisticas"
         };
 
         boolean requiresAdmin = false;

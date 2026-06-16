@@ -8,17 +8,12 @@ import Modelo.Estadistica;
 import Modelo.EstadisticaDAO;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import Conectividad.ConectarseBD;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 
 /**
  *
@@ -48,42 +43,15 @@ public class ServletEstadisticas extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
         throws ServletException, IOException {
 
-        List<Estadistica> alumnosPorEmpresa = new ArrayList<>();
-        List<Estadistica> alumnosPorCurso = new ArrayList<>();
-
-        try (Connection con = ConectarseBD.conectarse(null)) {
-            String sqlEmpresa = "SELECT e.nombre AS empresa, COUNT(p.id_practica) AS num_alumnos "
-                              + "FROM Empresa e LEFT JOIN Practica p ON p.empresa_id = e.id_empresa "
-                              + "GROUP BY e.nombre";
-            try (PreparedStatement ps = con.prepareStatement(sqlEmpresa);
-                 ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    alumnosPorEmpresa.add(new Estadistica(
-                        rs.getString("empresa"),
-                        rs.getInt("num_alumnos")
-                    ));
-                }
-            }
-
-            String sqlCurso = "SELECT a.curso_matriculado AS curso, COUNT(*) AS num_alumnos "
-                            + "FROM Alumno a LEFT JOIN Practica p ON p.alumno_id = a.id_alumno "
-                            + "GROUP BY a.curso_matriculado";
-            try (PreparedStatement ps = con.prepareStatement(sqlCurso);
-                 ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    alumnosPorCurso.add(new Estadistica(
-                        rs.getString("curso"),
-                        rs.getInt("num_alumnos")
-                    ));
-                }
-            }
-
+        try {
+            List<Estadistica> alumnosPorEmpresa = Modelo.EstadisticaDAO.alumnosPorEmpresa();
+            List<Estadistica> alumnosPorCurso = Modelo.EstadisticaDAO.alumnosPorCurso();
+            request.setAttribute("alumnosPorEmpresa", alumnosPorEmpresa);
+            request.setAttribute("alumnosPorCurso", alumnosPorCurso);
         } catch (Exception e) {
             e.printStackTrace();
+            request.setAttribute("error", "Error al obtener estadísticas: " + e.getMessage());
         }
-
-        request.setAttribute("alumnosPorEmpresa", alumnosPorEmpresa);
-        request.setAttribute("alumnosPorCurso", alumnosPorCurso);
 
         request.getRequestDispatcher("/estadisticas.jsp").forward(request, response);
     }

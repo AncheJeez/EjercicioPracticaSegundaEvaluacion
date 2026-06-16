@@ -7,28 +7,15 @@ package Control;
 import Modelo.Empresa;
 import Modelo.EmpresaDAO;
 import java.io.IOException;
-import java.io.PrintWriter;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.sql.PreparedStatement;
-
-import Conectividad.ConectarseBD;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 /**
  *
  * @author AndJe
@@ -54,17 +41,14 @@ public class ServletGestionEmpresas extends HttpServlet {
 
     private void borrarEmpresa(HttpServletRequest request, HttpServletResponse response, String id)
             throws ServletException, IOException {
-        try (Connection con = ConectarseBD.conectarse(null)) {
-            String sqlDelete = "DELETE FROM Empresa WHERE id_empresa = ?";
-            try (PreparedStatement ps = con.prepareStatement(sqlDelete)) {
-                ps.setInt(1, Integer.parseInt(id));
-                ps.executeUpdate();
-                System.out.println("Empresa con ID " + id + " borrada correctamente.");
+        try {
+            if (id != null && !id.isEmpty()) {
+                Modelo.EmpresaDAO.delete(Integer.parseInt(id));
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ServletGestionEmpresas.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(ServletGestionEmpresas.class.getName()).log(Level.SEVERE, null, e);
+            request.setAttribute("error", "Error al borrar empresa: " + e.getMessage());
         }
 
         response.sendRedirect("ServletGestionEmpresas");
@@ -73,58 +57,28 @@ public class ServletGestionEmpresas extends HttpServlet {
 
     private void listarEmpresas(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        List<Empresa> empresas = new ArrayList<>();
-
-        // Obtener datos de la base de datos
-        try (Connection con = ConectarseBD.conectarse(null);
-             Statement stmt = con.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT id_empresa, nombre, descripcion, nombre_completo, email_tutor_laboral FROM Empresa")) {
-
-            while (rs.next()) {
-                Empresa empresa = new Empresa(
-                        rs.getInt("id_empresa"),
-                        rs.getString("nombre"),
-                        rs.getString("descripcion"),
-                        rs.getString("nombre_completo"),
-                        rs.getString("email_tutor_laboral")
-                );
-                empresas.add(empresa);
-            }
-
-            // Pasar la lista de empresas al JSP
+        try {
+            List<Empresa> empresas = EmpresaDAO.listAll();
             request.setAttribute("empresas", empresas);
             request.getRequestDispatcher("/gestion_empresas.jsp").forward(request, response);
-
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ServletGestionEmpresas.class.getName()).log(Level.SEVERE, null, ex);
+            request.setAttribute("error", "Error al listar empresas: " + e.getMessage());
+            request.getRequestDispatcher("/gestion_empresas.jsp").forward(request, response);
         }
     }
 
     private void editarEmpresa(HttpServletRequest request, HttpServletResponse response, String id)
             throws ServletException, IOException {
         Empresa empresa = null;
-
-        try (Connection con = ConectarseBD.conectarse(null);
-             PreparedStatement ps = con.prepareStatement("SELECT * FROM Empresa WHERE id_empresa = ?")) {
-            ps.setInt(1, Integer.parseInt(id));
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                empresa = new Empresa(
-                        rs.getInt("id_empresa"),
-                        rs.getString("nombre"),
-                        rs.getString("descripcion"),
-                        rs.getString("nombre_completo"),
-                        rs.getString("email_tutor_laboral")
-                );
+        try {
+            if (id != null && !id.isEmpty()) {
+                empresa = EmpresaDAO.findById(Integer.parseInt(id));
             }
-
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ServletGestionEmpresas.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(ServletGestionEmpresas.class.getName()).log(Level.SEVERE, null, e);
+            request.setAttribute("error", "Error al recuperar empresa: " + e.getMessage());
         }
 
         // Pasar la empresa al JSP para rellenar los campos del formulario
@@ -142,31 +96,25 @@ public class ServletGestionEmpresas extends HttpServlet {
         String email_tutor_laboral = request.getParameter("email_tutor_laboral");
         String id = request.getParameter("id");
 
-        try (Connection con = ConectarseBD.conectarse(null)) {
+        try {
+            Empresa e = new Empresa();
+            e.setNombre(nombre);
+            e.setDescripcion(descripcion);
+            e.setNombre_completo(nombre_completo);
+            e.setEmail_tutor_laboral(email_tutor_laboral);
+
             if (id != null && !id.isEmpty()) {
-                String sqlUpdate = "UPDATE Empresa SET nombre = ?, descripcion = ?, nombre_completo = ?, email_tutor_laboral = ? WHERE id_empresa = ?";
-                try (PreparedStatement ps = con.prepareStatement(sqlUpdate)) {
-                    ps.setString(1, nombre);
-                    ps.setString(2, descripcion);
-                    ps.setString(3, nombre_completo);
-                    ps.setString(4, email_tutor_laboral);
-                    ps.setInt(5, Integer.parseInt(id));
-                    ps.executeUpdate();
-                }
+                e.setId_empresa(Integer.parseInt(id));
+                EmpresaDAO.update(e);
             } else {
-                String sqlInsert = "INSERT INTO Empresa (nombre, descripcion, nombre_completo, email_tutor_laboral) VALUES (?, ?, ?, ?)";
-                try (PreparedStatement ps = con.prepareStatement(sqlInsert)) {
-                    ps.setString(1, nombre);
-                    ps.setString(2, descripcion);
-                    ps.setString(3, nombre_completo);
-                    ps.setString(4, email_tutor_laboral);
-                    ps.executeUpdate();
-                }
+                EmpresaDAO.insert(e);
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException ex) {
+        } catch (Exception ex) {
+            ex.printStackTrace();
             Logger.getLogger(ServletGestionEmpresas.class.getName()).log(Level.SEVERE, null, ex);
+            request.setAttribute("error", "Error al guardar empresa: " + ex.getMessage());
+            request.getRequestDispatcher("/crear_editar_empresa.jsp").forward(request, response);
+            return;
         }
 
         response.sendRedirect("ServletGestionEmpresas");

@@ -77,6 +77,16 @@
                         <a href="?lang=es" class="btn btn-sm btn-secondary">ES</a>
                         <a href="?lang=en" class="btn btn-sm btn-secondary">EN</a>
                     </div>
+                    <c:if test="${not empty sessionScope.nombre}">
+                        <div class="ms-2 me-2">
+                            <span class="badge bg-secondary">
+                                <c:choose>
+                                    <c:when test="${sessionScope.directiva}">Directiva</c:when>
+                                    <c:otherwise>Profesor</c:otherwise>
+                                </c:choose>
+                            </span>
+                        </div>
+                    </c:if>
                     <ul class="navbar-nav ms-auto">
                         <c:choose>
                             <c:when test="${not empty sessionScope.nombre}">
@@ -120,6 +130,18 @@
                 </c:if>
             </c:if>
         
+            <div class="mb-3 text-start">
+                <form method="get" action="ServletGestionAlumnos" class="d-inline">
+                    <label for="cursoSelect" class="form-label me-2">Filtrar por curso:</label>
+                    <select id="cursoSelect" name="curso" class="form-select d-inline-block" style="width: auto;" onchange="this.form.submit()">
+                        <option value="">Mostrar todos</option>
+                        <c:forEach var="c" items="${cursos}">
+                            <option value="${c}" <c:if test="${c == cursoSeleccionado}">selected</c:if>>${c}</option>
+                        </c:forEach>
+                    </select>
+                </form>
+            </div>
+
             <c:if test="${empty alumnos}">
                 <div class="alert alert-warning" role="alert">
                     No hay alumnos registrados en el sistema.
@@ -172,10 +194,21 @@
             </table>
             
             <a href="crear_editar_empresa.jsp" class="btn btn-primary btn-sm">Crear Empresa</a><br/>
+            <form action="ServletGestionAlumnos" method="post" enctype="multipart/form-data" class="mb-3 mt-3">
+                <input type="hidden" name="action" value="upload" />
+                <div class="input-group">
+                    <input type="file" name="csvfile" accept=".csv" class="form-control" required />
+                    <button class="btn btn-primary" type="submit">Subir csv</button>
+                </div>
+                <small class="form-text text-muted">Al subir se reemplazarán los alumnos existentes para evitar duplicados.</small>
+            </form>
             <a href="ServletDescargarCSV" class="btn btn-success mb-3">
                 Descargar CSV de Alumnos y Prácticas
             </a>
             
+            <c:if test="${not empty message}">
+                <div class="alert alert-success mt-3">${message}</div>
+            </c:if>
         </div>
     </body>
 </html>

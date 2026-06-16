@@ -77,6 +77,16 @@
                         <a href="?lang=es" class="btn btn-sm btn-secondary">ES</a>
                         <a href="?lang=en" class="btn btn-sm btn-secondary">EN</a>
                     </div>
+                    <c:if test="${not empty sessionScope.nombre}">
+                        <div class="ms-2 me-2">
+                            <span class="badge bg-secondary">
+                                <c:choose>
+                                    <c:when test="${sessionScope.directiva}">Directiva</c:when>
+                                    <c:otherwise>Profesor</c:otherwise>
+                                </c:choose>
+                            </span>
+                        </div>
+                    </c:if>
                     <ul class="navbar-nav ms-auto">
                         <c:choose>
                             <c:when test="${not empty sessionScope.nombre}">
@@ -120,6 +130,9 @@
                         </a>
                         <a href="/EjercicioSegundaEvaluacion/ServletGestionPracticas" class="btn btn-primary btn-lg">
                             <fmt:message key="gestionPractica"/>
+                        </a>
+                        <a href="/EjercicioSegundaEvaluacion/EnviarCorreo" class="btn btn-secondary btn-lg">
+                            Enviar Correo
                         </a>
                     </div>
                 </c:when>

@@ -14,15 +14,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.List;
-
-import Conectividad.ConectarseBD;
 
 /**
  *
@@ -72,74 +64,16 @@ public class ServletMostrarTodosLosDatos extends HttpServlet {
         
             response.setContentType("text/html;charset=UTF-8");
         
-        Connection con = null;
-        Statement stmt = null;
-        ResultSet rsAlumnos = null;
-        ResultSet rsProf = null;
-        try{
-            
-            con = ConectarseBD.conectarse(con);
-            if (con == null) {
-                System.out.println("Error: La conexión a la base de datos es nula.");
-            } else {
-                System.out.println("Conexión a la base de datos exitosa.");
-            }
-            
-            stmt = con.createStatement();
-            
-            rsAlumnos = stmt.executeQuery(
-                "SELECT id_alumno, nombre, apellidos, email, curso_matriculado, fecha_nac FROM Alumno"
-            );
-
-            List<Alumno> alumnos = new ArrayList<>();
-            while (rsAlumnos.next()) {
-                alumnos.add(new Alumno(
-                    rsAlumnos.getInt("id_alumno"),
-                    rsAlumnos.getString("nombre"),
-                    rsAlumnos.getString("apellidos"),
-                    rsAlumnos.getString("email"),
-                    rsAlumnos.getString("curso_matriculado"),
-                    rsAlumnos.getDate("fecha_nac"),
-                    rsAlumnos.getString("grupo")
-                ));
-            }
-            
+        try {
+            List<Alumno> alumnos = Modelo.AlumnoDAO.listAll();
+            List<Profesor> profesores = Modelo.ProfesorDAO.listAll();
             request.setAttribute("alumnos", alumnos);
-            
-            rsProf = stmt.executeQuery(
-                "SELECT id_profesor, nombre, apellidos, email, password, directiva FROM Profesor"
-            );
-
-            List<Profesor> profesores = new ArrayList<>();
-            while (rsProf.next()) {
-                profesores.add(new Profesor(
-                    rsProf.getInt("id_profesor"),
-                    rsProf.getString("nombre"),
-                    rsProf.getString("apellidos"),
-                    rsProf.getString("email"),
-                    rsProf.getString("password"),
-                    rsProf.getBoolean("directiva")
-                ));
-            }
-            
             request.setAttribute("profesores", profesores);
-            
-            
-            
             request.getRequestDispatcher("/mostrarTodosDatos.jsp").forward(request, response);
-            
-            
-        } catch (ClassNotFoundException ex) {
+        } catch (Exception ex) {
             ex.printStackTrace();
-            System.getLogger(ServletMostrarTodosLosDatos.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            System.getLogger(ServletMostrarTodosLosDatos.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
-        } finally {
-            try { if(rsAlumnos != null) rsAlumnos.close(); } catch(Exception e) {}
-            try { if(rsProf != null) rsProf.close(); } catch(Exception e) {}
-            try { if(stmt != null) stmt.close(); } catch(Exception e) {}
-            try { if(con != null) con.close(); } catch(Exception e) {}
+            request.setAttribute("error", "Error al obtener datos: " + ex.getMessage());
+            request.getRequestDispatcher("/mostrarTodosDatos.jsp").forward(request, response);
         }
     }
 

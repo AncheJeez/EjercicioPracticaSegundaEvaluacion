@@ -1,20 +1,15 @@
 package Control;
 
-import Conectividad.ConectarseBD;
 import Modelo.Curso;
+import Modelo.CursoDAO;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -68,26 +63,10 @@ public class ServletGestionCurso extends HttpServlet {
     
     private void listarCursos(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
-        List<Curso> cursos = new ArrayList<>();
-
-        try (Connection con = ConectarseBD.conectarse(null)) {
-
-            String sql = "SELECT nombre FROM Curso ORDER BY nombre";
-            try (PreparedStatement ps = con.prepareStatement(sql);
-                 ResultSet rs = ps.executeQuery()) {
-
-                while (rs.next()) {
-                    Curso curso = new Curso();
-                    curso.setNombre(rs.getString("nombre"));
-                    cursos.add(curso);
-                }
-            }
-
+        try {
+            List<Curso> cursos = Modelo.CursoDAO.listAll();
             request.setAttribute("cursos", cursos);
-
             request.getRequestDispatcher("/gestion_cursos.jsp").forward(request, response);
-
         } catch (Exception e) {
             e.printStackTrace();
             request.setAttribute("error", "Error al listar los cursos: " + e.getMessage());
@@ -103,19 +82,8 @@ public class ServletGestionCurso extends HttpServlet {
             return;
         }
 
-        try (Connection con = ConectarseBD.conectarse(null)) {
-
-            String sqlDelete = "DELETE FROM Curso WHERE nombre = ?";
-            try (PreparedStatement ps = con.prepareStatement(sqlDelete)) {
-                ps.setString(1, nombreCurso);
-                int filas = ps.executeUpdate();
-                if (filas > 0) {
-                    System.out.println("Curso '" + nombreCurso + "' borrado correctamente.");
-                } else {
-                    System.out.println("No se encontró el curso '" + nombreCurso + "'.");
-                }
-            }
-
+        try {
+            Modelo.CursoDAO.deleteByName(nombreCurso);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -126,20 +94,13 @@ public class ServletGestionCurso extends HttpServlet {
     private void editarCurso(HttpServletRequest request, HttpServletResponse response, String nombre)
             throws ServletException, IOException {
 
-        try (Connection con = ConectarseBD.conectarse(null)) {
-            String sql = "SELECT nombre FROM Curso WHERE nombre = ?";
-            try (PreparedStatement ps = con.prepareStatement(sql)) {
-                ps.setString(1, nombre);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        Curso cursoObj = new Curso();
-                        cursoObj.setNombre(rs.getString("nombre"));
-                        request.setAttribute("curso", cursoObj);
-                        request.getRequestDispatcher("/crear_editar_cursos.jsp").forward(request, response);
-                    } else {
-                        response.sendRedirect("ServletGestionCurso"); // no encontrado
-                    }
-                }
+        try {
+            Modelo.Curso cursoObj = Modelo.CursoDAO.findByName(nombre);
+            if (cursoObj != null) {
+                request.setAttribute("curso", cursoObj);
+                request.getRequestDispatcher("/crear_editar_cursos.jsp").forward(request, response);
+            } else {
+                response.sendRedirect("ServletGestionCurso"); // no encontrado
             }
         } catch (Exception e) {
             e.printStackTrace();

@@ -47,6 +47,37 @@ public class EmpresaDAO {
         return null;
     }
 
+    public static Empresa findByName(String name) throws Exception {
+        try (Connection con = ConectarseBD.conectarse(null);
+             PreparedStatement ps = con.prepareStatement("SELECT * FROM Empresa WHERE nombre = ?")) {
+            ps.setString(1, name);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new Empresa(
+                        rs.getInt("id_empresa"),
+                        rs.getString("nombre"),
+                        rs.getString("descripcion"),
+                        rs.getString("nombre_completo"),
+                        rs.getString("email_tutor_laboral")
+                    );
+                }
+            }
+        }
+        return null;
+    }
+
+    public static void insertIfNotExistsByName(String name) throws Exception {
+        // Minimal insert that only sets the name if it doesn't exist
+        if (name == null || name.trim().isEmpty()) return;
+        Empresa existing = findByName(name);
+        if (existing != null) return;
+        try (Connection con = ConectarseBD.conectarse(null);
+             PreparedStatement ps = con.prepareStatement("INSERT INTO Empresa (nombre) VALUES (?)")) {
+            ps.setString(1, name);
+            ps.executeUpdate();
+        }
+    }
+
     public static void delete(int id) throws Exception {
         try (Connection con = ConectarseBD.conectarse(null);
              PreparedStatement ps = con.prepareStatement("DELETE FROM Empresa WHERE id_empresa = ?")) {
