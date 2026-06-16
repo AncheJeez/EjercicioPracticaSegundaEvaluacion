@@ -193,7 +193,7 @@
                 </tbody>
             </table>
             
-            <a href="crear_editar_empresa.jsp" class="btn btn-primary btn-sm">Crear Empresa</a><br/>
+            <a href="ServletGestionAlumnos?action=new" class="btn btn-primary btn-sm">Crear Alumno</a><br/>
             <form action="ServletGestionAlumnos" method="post" enctype="multipart/form-data" class="mb-3 mt-3">
                 <input type="hidden" name="action" value="upload" />
                 <div class="input-group">

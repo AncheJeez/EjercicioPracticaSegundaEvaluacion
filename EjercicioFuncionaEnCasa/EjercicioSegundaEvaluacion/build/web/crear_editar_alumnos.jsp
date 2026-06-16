@@ -164,12 +164,33 @@
 
         <div class="mb-3">
             <label for="curso_matriculado" class="form-label">Curso Matriculado</label>
-            <input type="text" 
-                   class="form-control" 
-                   id="curso_matriculado" 
-                   name="curso_matriculado"
-                   value="${not empty alumno ? alumno.cursoMatriculado : ''}" 
-                   required>
+            <c:choose>
+                <c:when test="${not empty cursos}">
+                    <select id="curso_matriculado" name="curso_matriculado" class="form-select" required>
+                        <option value="">-- Seleccionar curso --</option>
+                        <c:forEach var="c" items="${cursos}">
+                            <!-- c may be a Curso object or String; try properties accordingly -->
+                            <c:choose>
+                                <c:when test="${c.nombre != null}">
+                                    <option value="${c.nombre}" <c:if test="${not empty alumno && alumno.cursoMatriculado == c.nombre}">selected</c:if>>${c.nombre}</option>
+                                </c:when>
+                                <c:otherwise>
+                                    <option value="${c}" <c:if test="${not empty alumno && alumno.cursoMatriculado == c}">selected</c:if>>${c}</option>
+                                </c:otherwise>
+                            </c:choose>
+                        </c:forEach>
+                    </select>
+                </c:when>
+                <c:otherwise>
+                    <input type="text" 
+                           class="form-control" 
+                           id="curso_matriculado" 
+                           name="curso_matriculado"
+                           value="${not empty alumno ? alumno.cursoMatriculado : ''}" 
+                           required>
+                    <div class="form-text">No hay cursos disponibles — se creará uno nuevo con el nombre introducido.</div>
+                </c:otherwise>
+            </c:choose>
         </div>
 
         <div class="mb-3">

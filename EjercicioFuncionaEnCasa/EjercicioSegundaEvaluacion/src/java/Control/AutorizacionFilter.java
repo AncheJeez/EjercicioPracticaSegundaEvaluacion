@@ -33,7 +33,6 @@ public class AutorizacionFilter implements Filter {
         String uri = req.getRequestURI();
         String context = req.getContextPath();
 
-        // Rutas públicas (login, registro, recursos estáticos, páginas públicas)
         if (uri.startsWith(context + "/Logearse") || uri.startsWith(context + "/Registrarse") || uri.endsWith("LogIn.jsp") || uri.endsWith("Register.jsp") || uri.startsWith(context + "/resources/")
                 || uri.equals(context + "/") || uri.endsWith("index.jsp") ) {
             chain.doFilter(request, response);
@@ -42,14 +41,11 @@ public class AutorizacionFilter implements Filter {
 
         HttpSession session = req.getSession(false);
 
-        // Si no hay sesión, redirigir al login
         if (session == null || session.getAttribute("nombre") == null) {
             res.sendRedirect(context + "/Logearse");
             return;
         }
 
-        // Determinar si la ruta requiere rol de directiva (administración)
-        // Only truly admin-only paths (directiva) remain here.
         String[] adminPaths = new String[] {
             "/ServletGestionProfesores",
             "/ServletGestionCurso",
@@ -77,7 +73,6 @@ public class AutorizacionFilter implements Filter {
             }
         }
 
-        // Si todo está bien, continuar
         chain.doFilter(request, response);
     }
 

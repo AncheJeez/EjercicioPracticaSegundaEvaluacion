@@ -167,6 +167,36 @@ public class AlumnoDAO {
         }
     }
 
+    /**
+     * Insert an Alumno and return the generated id (auto-increment).
+     * This method is new and does not replace insert(a) to avoid breaking callers.
+     */
+    public static int insertReturnId(Alumno a) throws Exception {
+        try (Connection con = ConectarseBD.conectarse(null)) {
+            boolean hasGrupo = hasColumn(con, "Alumno", "grupo");
+            String sql = hasGrupo ? "INSERT INTO Alumno (nombre, apellidos, email, curso_matriculado, fecha_nac, grupo) VALUES (?,?,?,?,?,?)" : "INSERT INTO Alumno (nombre, apellidos, email, curso_matriculado, fecha_nac) VALUES (?,?,?,?,?)";
+            try (PreparedStatement ps = con.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, a.getNombre());
+                ps.setString(2, a.getApellidos());
+                ps.setString(3, a.getEmail());
+                ps.setString(4, a.getCursoMatriculado());
+                if (a.getFechaNac() != null) {
+                    ps.setDate(5, new java.sql.Date(a.getFechaNac().getTime()));
+                } else {
+                    ps.setDate(5, null);
+                }
+                if (hasGrupo) {
+                    ps.setString(6, a.getGrupo());
+                }
+                ps.executeUpdate();
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    if (keys.next()) return keys.getInt(1);
+                }
+            }
+        }
+        return -1;
+    }
+
     public static void update(Alumno a) throws Exception {
         try (Connection con = ConectarseBD.conectarse(null)) {
             boolean hasGrupo = hasColumn(con, "Alumno", "grupo");

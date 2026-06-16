@@ -28,6 +28,7 @@ import Modelo.Practica;
 import Modelo.PracticaDAO;
 import Modelo.Empresa;
 import Modelo.EmpresaDAO;
+import Modelo.CursoDAO;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -73,6 +74,8 @@ public class ServletGestionAlumnos extends HttpServlet {
 
         if ("borrar".equals(action)) {
             borrarAlumno(request, response, id);
+        } else if ("new".equals(action)) {
+            prepararNuevoAlumno(request, response);
         } else if (id != null && !id.isEmpty()) {
             editarAlumno(request, response, id);
         } else {
@@ -82,9 +85,22 @@ public class ServletGestionAlumnos extends HttpServlet {
     
     private void borrarAlumno(HttpServletRequest request, HttpServletResponse response, String id)
             throws ServletException, IOException {
+        if (id == null || id.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            request.setAttribute("error", "ID de alumno ausente");
+            listarAlumnos(request, response);
+            return;
+        }
+
         try {
             Modelo.AlumnoDAO.delete(Integer.parseInt(id));
+            // Prefer redirect after successful delete
             response.sendRedirect("ServletGestionAlumnos");
+            return;
+        } catch (NumberFormatException nfe) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            request.setAttribute("error", "ID de alumno inválido: " + id);
+            listarAlumnos(request, response);
             return;
         } catch (Exception e) {
             // capture stacktrace and show the view with error details
@@ -92,9 +108,10 @@ public class ServletGestionAlumnos extends HttpServlet {
             e.printStackTrace(new java.io.PrintWriter(sw));
             request.setAttribute("error", "Error al borrar alumno: " + e.getMessage());
             request.setAttribute("exceptionStack", sw.toString());
-            // fallthrough to listar para mostrar la vista con el error
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            listarAlumnos(request, response);
+            return;
         }
-        listarAlumnos(request, response);
     }
     
     private void listarAlumnos(HttpServletRequest request, HttpServletResponse response)
@@ -107,6 +124,8 @@ public class ServletGestionAlumnos extends HttpServlet {
             List<String> cursos = Modelo.AlumnoDAO.listCursos();
             request.setAttribute("cursos", cursos);
             request.setAttribute("cursoSeleccionado", cursoFilter);
+            // successful list
+            response.setStatus(HttpServletResponse.SC_OK);
             request.getRequestDispatcher("/gestion_alumnos.jsp").forward(request, response);
         } catch (Exception e) {
             // capture stacktrace and show the gestion view with details
@@ -114,25 +133,74 @@ public class ServletGestionAlumnos extends HttpServlet {
             e.printStackTrace(new java.io.PrintWriter(sw));
             request.setAttribute("error", "Error al listar alumnos: " + e.getMessage());
             request.setAttribute("exceptionStack", sw.toString());
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            request.getRequestDispatcher("/gestion_alumnos.jsp").forward(request, response);
+        }
+    }
+
+    private void prepararNuevoAlumno(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            // provide empty alumno and cursos list
+            request.setAttribute("alumno", null);
+            try {
+                List<Modelo.Curso> cursos = Modelo.CursoDAO.listAll();
+                request.setAttribute("cursos", cursos);
+            } catch (Exception ex) {
+                // ignore
+            }
+            response.setStatus(HttpServletResponse.SC_OK);
+            request.getRequestDispatcher("/crear_editar_alumnos.jsp").forward(request, response);
+        } catch (Exception e) {
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            request.setAttribute("error", "Error preparando creación de alumno: " + e.getMessage());
+            request.setAttribute("exceptionStack", sw.toString());
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             request.getRequestDispatcher("/gestion_alumnos.jsp").forward(request, response);
         }
     }
     
     private void editarAlumno(HttpServletRequest request, HttpServletResponse response, String id)
             throws ServletException, IOException {
+        if (id == null || id.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            request.setAttribute("error", "ID de alumno ausente para editar");
+            listarAlumnos(request, response);
+            return;
+        }
+
         try {
             Alumno alumno = Modelo.AlumnoDAO.findById(Integer.parseInt(id));
+            if (alumno == null) {
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                request.setAttribute("error", "Alumno no encontrado");
+                listarAlumnos(request, response);
+                return;
+            }
             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
             String fechaFormateada = alumno.getFechaNac() != null ? sdf.format(alumno.getFechaNac()) : "";
             request.setAttribute("alumno", alumno);
             request.setAttribute("fechaFormateada", fechaFormateada);
+            // provide cursos list for select
+            try {
+                List<Modelo.Curso> cursos = Modelo.CursoDAO.listAll();
+                request.setAttribute("cursos", cursos);
+            } catch (Exception ex) {
+                // ignore — view will handle empty cursos
+            }
+            response.setStatus(HttpServletResponse.SC_OK);
             request.getRequestDispatcher("/crear_editar_alumnos.jsp").forward(request, response);
+        } catch (NumberFormatException nfe) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            request.setAttribute("error", "ID de alumno inválido: " + id);
+            listarAlumnos(request, response);
         } catch (Exception e) {
             // capture stacktrace and forward to edit view with details
             java.io.StringWriter sw = new java.io.StringWriter();
             e.printStackTrace(new java.io.PrintWriter(sw));
             request.setAttribute("error", "Error al obtener/editar alumno: " + e.getMessage());
             request.setAttribute("exceptionStack", sw.toString());
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             request.getRequestDispatcher("/crear_editar_alumnos.jsp").forward(request, response);
         }
     }
@@ -155,6 +223,7 @@ public class ServletGestionAlumnos extends HttpServlet {
         if ((action != null && action.equals("upload")) || filePart != null) {
             // process CSV upload
             if (filePart == null || filePart.getSize() == 0) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 request.setAttribute("error", "No se ha seleccionado ningún fichero CSV.");
                 listarAlumnos(request, response);
                 return;
@@ -164,6 +233,7 @@ public class ServletGestionAlumnos extends HttpServlet {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(filePart.getInputStream(), StandardCharsets.UTF_8))) {
                 String first = reader.readLine();
                 if (first == null) {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     request.setAttribute("error", "CSV vacío");
                     listarAlumnos(request, response);
                     return;
@@ -250,6 +320,7 @@ public class ServletGestionAlumnos extends HttpServlet {
                     }
 
                     request.setAttribute("message", "CSV importado. Alumnos insertados: " + inserted);
+                    response.setStatus(HttpServletResponse.SC_OK);
                     listarAlumnos(request, response);
                     return;
 
@@ -287,6 +358,7 @@ public class ServletGestionAlumnos extends HttpServlet {
                     }
 
                     request.setAttribute("message", "CSV importado (formato legacy). Alumnos insertados: " + inserted);
+                    response.setStatus(HttpServletResponse.SC_OK);
                     listarAlumnos(request, response);
                     return;
                 }
@@ -294,6 +366,8 @@ public class ServletGestionAlumnos extends HttpServlet {
             } catch (Exception e) {
                 e.printStackTrace();
                 request.setAttribute("error", "Error al procesar CSV: " + e.getMessage());
+                java.io.StringWriter sw = new java.io.StringWriter(); e.printStackTrace(new java.io.PrintWriter(sw)); request.setAttribute("exceptionStack", sw.toString());
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 listarAlumnos(request, response);
                 return;
             }
@@ -310,6 +384,28 @@ public class ServletGestionAlumnos extends HttpServlet {
 
         try {
             java.sql.Date fecha = fechaStr != null && !fechaStr.isEmpty() ? java.sql.Date.valueOf(fechaStr) : null;
+
+            // Ensure curso exists to satisfy FK constraint. If not, create it.
+            if (curso != null) curso = curso.trim();
+            if (curso != null && !curso.isEmpty()) {
+                try {
+                    Modelo.CursoDAO.findByName(curso);
+                } catch (Exception ignored) {
+                    // findByName throws on DB issues; fallback handled below
+                }
+                // If curso not present, insert it
+                try {
+                    if (Modelo.CursoDAO.findByName(curso) == null) {
+                        Modelo.CursoDAO.insert(curso);
+                    }
+                } catch (Exception eCurso) {
+                    // If cannot create curso, propagate as validation error
+                    throw new Exception("No se pudo asegurar el curso '" + curso + "': " + eCurso.getMessage(), eCurso);
+                }
+            } else {
+                // If curso empty, set to NULL to avoid FK violation if schema allows null
+                curso = null;
+            }
 
             if (id != null && !id.isEmpty()) {
                 Alumno alumno = new Alumno(Integer.parseInt(id), nombre, apellidos, email, curso, fecha, grupo);
@@ -332,6 +428,7 @@ public class ServletGestionAlumnos extends HttpServlet {
             request.setAttribute("curso_matriculado", curso);
             request.setAttribute("fecha_nac", fechaStr);
             request.setAttribute("grupo", grupo);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             request.getRequestDispatcher("/crear_editar_alumnos.jsp").forward(request, response);
             return;
         }
